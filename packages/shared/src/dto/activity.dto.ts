@@ -6,6 +6,7 @@ export interface ActivityDto {
   title: string;
   description: string | null;
   responsibleId: number | null;
+  coResponsibleId: number | null;
   priority: ActivityPriority;
   status: ActivityStatus;
   startDate: string | null;

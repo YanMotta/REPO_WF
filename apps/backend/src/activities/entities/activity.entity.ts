@@ -36,6 +36,14 @@ export class Activity {
   @JoinColumn({ name: 'responsibleId' })
   responsible: User | null;
 
+  /** Stands in for `responsible` when they're on vacation or overloaded. */
+  @Column({ type: 'int', nullable: true })
+  coResponsibleId: number | null;
+
+  @ManyToOne(() => User, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'coResponsibleId' })
+  coResponsible: User | null;
+
   @Column({ type: 'varchar', default: ActivityPriority.MEDIUM })
   priority: ActivityPriority;
 

@@ -8,6 +8,7 @@ import { STATUS_COLOR, STATUS_LABEL } from '../constants/status';
 import { formatBusinessDayRule, formatDate, formatTime } from '../utils/format';
 import { ActivityDetailsDrawer } from './atividades/ActivityDetailsDrawer';
 import { PredecessorCell } from './atividades/PredecessorCell';
+import { ResponsibleCell } from './atividades/ResponsibleCell';
 
 const now = new Date();
 const CURRENT_MONTH = now.getMonth() + 1;
@@ -58,13 +59,18 @@ export function AtividadesPage() {
     return map;
   }, [usersQuery.data]);
 
+  const userSelectOptions = useMemo(
+    () => (usersQuery.data ?? []).map((user) => ({ value: String(user.id), label: user.name })),
+    [usersQuery.data],
+  );
+
   const responsibleOptions = useMemo(
     () => [
       { value: ALL_RESPONSIBLE, label: 'Todos' },
       { value: NO_RESPONSIBLE, label: 'Sem responsável' },
-      ...(usersQuery.data ?? []).map((user) => ({ value: String(user.id), label: user.name })),
+      ...userSelectOptions,
     ],
-    [usersQuery.data],
+    [userSelectOptions],
   );
 
   const filteredActivities = useMemo(() => {
@@ -147,7 +153,16 @@ export function AtividadesPage() {
                   </UnstyledButton>
                 </Table.Td>
                 <Table.Td>
-                  {activity.responsibleId ? (userNameById.get(activity.responsibleId) ?? '—') : '—'}
+                  <ResponsibleCell
+                    activityId={activity.id}
+                    responsibleId={activity.responsibleId}
+                    responsibleName={
+                      activity.responsibleId ? (userNameById.get(activity.responsibleId) ?? '—') : '—'
+                    }
+                    coResponsibleId={activity.coResponsibleId}
+                    userOptions={userSelectOptions}
+                    userNameById={userNameById}
+                  />
                 </Table.Td>
                 <Table.Td>
                   <PredecessorCell activityId={activity.id} rowNumberById={rowNumberById} />
@@ -172,6 +187,9 @@ export function AtividadesPage() {
         activity={selected}
         responsibleName={
           selected?.responsibleId ? (userNameById.get(selected.responsibleId) ?? '—') : '—'
+        }
+        coResponsibleName={
+          selected?.coResponsibleId ? (userNameById.get(selected.coResponsibleId) ?? '—') : null
         }
         onClose={() => setSelected(null)}
       />

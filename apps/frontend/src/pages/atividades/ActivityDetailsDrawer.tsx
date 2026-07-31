@@ -18,10 +18,12 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
 export function ActivityDetailsDrawer({
   activity,
   responsibleName,
+  coResponsibleName,
   onClose,
 }: {
   activity: ActivityDto | null;
   responsibleName: string;
+  coResponsibleName: string | null;
   onClose: () => void;
 }) {
   return (
@@ -42,6 +44,7 @@ export function ActivityDetailsDrawer({
           {activity.description && <Field label="Descrição">{activity.description}</Field>}
 
           <Field label="Responsável">{responsibleName}</Field>
+          {coResponsibleName && <Field label="Co-responsável">{coResponsibleName}</Field>}
 
           <Group grow>
             <Field label="Previsto">{formatDate(activity.deadline)}</Field>

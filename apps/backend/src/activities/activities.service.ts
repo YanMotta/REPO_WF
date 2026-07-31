@@ -16,6 +16,7 @@ import {
   DomainEvent,
 } from '../common/events/domain-events';
 import { ActivityFilterDto } from './dto/activity-filter.dto';
+import { ChangeCoResponsibleDto } from './dto/change-co-responsible.dto';
 import { ChangeResponsibleDto } from './dto/change-responsible.dto';
 import { ChangeStatusDto } from './dto/change-status.dto';
 import { CreateActivityDto } from './dto/create-activity.dto';
@@ -117,6 +118,7 @@ export class ActivitiesService {
       title: dto.title,
       description: dto.description ?? null,
       responsibleId: dto.responsibleId ?? null,
+      coResponsibleId: dto.coResponsibleId ?? null,
       priority: dto.priority ?? undefined,
       status: ActivitiesService.resolveInitialStatus(hasDependencies),
       startDate: dto.startDate ? parseDeadlineInput(dto.startDate) : null,
@@ -255,6 +257,29 @@ export class ActivitiesService {
       newResponsibleId: dto.responsibleId,
     };
     this.eventEmitter.emit(DomainEvent.ActivityAssigneeChanged, payload);
+
+    return saved;
+  }
+
+  /** Sets/clears the co-responsible — a stand-in who can pick up the activity if the primary
+   * responsible is on vacation or overloaded. `coResponsibleId: null` clears it. */
+  async changeCoResponsible(
+    id: number,
+    dto: ChangeCoResponsibleDto,
+    actorId: number | null = null,
+  ): Promise<Activity> {
+    const activity = await this.findById(id);
+    const oldCoResponsibleId = activity.coResponsibleId;
+    activity.coResponsibleId = dto.coResponsibleId;
+    const saved = await this.activitiesRepository.save(activity);
+
+    await this.recordHistory(
+      saved.id,
+      ActivityHistoryEventType.CO_RESPONSIBLE_CHANGED,
+      oldCoResponsibleId != null ? String(oldCoResponsibleId) : null,
+      dto.coResponsibleId != null ? String(dto.coResponsibleId) : null,
+      actorId,
+    );
 
     return saved;
   }

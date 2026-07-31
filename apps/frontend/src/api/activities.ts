@@ -14,6 +14,7 @@ export interface CreateActivityDto {
   title: string;
   description?: string;
   responsibleId?: number;
+  coResponsibleId?: number;
   priority?: ActivityPriority;
   startDate?: string;
   deadline?: string;
@@ -58,6 +59,13 @@ export function changeActivityStatus(id: number, status: string): Promise<Activi
 
 export function changeActivityResponsible(id: number, responsibleId: number): Promise<ActivityDto> {
   return api.patch<ActivityDto>(`/activities/${id}/responsible`, { responsibleId });
+}
+
+export function changeActivityCoResponsible(
+  id: number,
+  coResponsibleId: number | null,
+): Promise<ActivityDto> {
+  return api.patch<ActivityDto>(`/activities/${id}/co-responsible`, { coResponsibleId });
 }
 
 export function generateClosure(month?: number, year?: number): Promise<{ created: number }> {

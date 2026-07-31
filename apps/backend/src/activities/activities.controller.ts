@@ -13,6 +13,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentUser, AuthenticatedUser } from '../common/decorators/current-user.decorator';
 import { ActivitiesService } from './activities.service';
 import { ActivityFilterDto } from './dto/activity-filter.dto';
+import { ChangeCoResponsibleDto } from './dto/change-co-responsible.dto';
 import { ChangeResponsibleDto } from './dto/change-responsible.dto';
 import { ChangeStatusDto } from './dto/change-status.dto';
 import { CreateActivityDto } from './dto/create-activity.dto';
@@ -60,6 +61,15 @@ export class ActivitiesController {
     @CurrentUser() user: AuthenticatedUser,
   ) {
     return this.activitiesService.changeResponsible(id, dto, user.id);
+  }
+
+  @Patch(':id/co-responsible')
+  changeCoResponsible(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: ChangeCoResponsibleDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.activitiesService.changeCoResponsible(id, dto, user.id);
   }
 
   @Get(':id/blocked-by')

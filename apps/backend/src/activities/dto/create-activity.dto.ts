@@ -36,6 +36,11 @@ export class CreateActivityDto {
   @IsInt()
   responsibleId?: number;
 
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsInt()
+  coResponsibleId?: number;
+
   @ApiPropertyOptional({ enum: ActivityPriority })
   @IsOptional()
   @IsEnum(ActivityPriority)
