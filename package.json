@@ -1,0 +1,21 @@
+{
+  "name": "workflow-brasal",
+  "private": true,
+  "version": "0.0.1",
+  "engines": {
+    "node": ">=18"
+  },
+  "packageManager": "pnpm@9.12.0",
+  "scripts": {
+    "build": "pnpm --filter @workflow-brasal/shared build && pnpm -r --filter=!@workflow-brasal/shared build",
+    "dev:shared": "pnpm --filter @workflow-brasal/shared build:watch",
+    "dev:backend": "pnpm --filter @workflow-brasal/backend start:dev",
+    "dev:frontend": "pnpm --filter @workflow-brasal/frontend dev",
+    "lint": "pnpm -r lint",
+    "test": "pnpm -r test"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "typescript": "^5.4.5"
+  }
+}
