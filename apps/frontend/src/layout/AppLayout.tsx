@@ -15,7 +15,7 @@ import { BrasalLogo } from '../components/BrasalLogo';
 const NAV_ITEMS = [
   { label: 'Atividades', path: '/fechamento', icon: IconCalendarStats },
   { label: 'Dashboard', path: '/dashboard', icon: IconLayoutDashboard },
-  { label: 'Quadro Kanban', path: '/quadro', icon: IconLayoutKanban },
+  { label: 'Quadro', path: '/quadro', icon: IconLayoutKanban },
   { label: 'Cronogramas', path: '/projetos', icon: IconFolders },
   { label: 'Gantt', path: '/gantt', icon: IconTimeline },
   { label: 'Checklist', path: '/modelos-fechamento', icon: IconChecklist },
