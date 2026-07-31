@@ -10,11 +10,11 @@ export interface ResponsibleStats {
   exceededHours: number;
 }
 
-export interface ProjectStats {
-  projectId: number;
-  name: string;
-  total: number;
-  late: number;
+export interface ActivityBottleneckStats {
+  activityId: number;
+  title: string;
+  responsibleName: string;
+  status: ActivityStatus;
   exceededHours: number;
 }
 
@@ -28,7 +28,7 @@ export interface DashboardStats {
   onTimeRate: number | null;
   statusCounts: Record<ActivityStatus, number>;
   byResponsible: ResponsibleStats[];
-  byProject: ProjectStats[];
+  bottlenecks: ActivityBottleneckStats[];
 }
 
 function average(values: number[]): number {
@@ -42,7 +42,6 @@ export function computeDashboardStats(
   users: UserDto[],
 ): DashboardStats {
   const userNameById = new Map(users.map((u) => [u.id, u.name]));
-  const projectNameById = new Map(projects.map((p) => [p.id, p.name]));
 
   const statusCounts = Object.fromEntries(
     KANBAN_COLUMNS.map((status) => [status, 0]),
@@ -97,23 +96,18 @@ export function computeDashboardStats(
     completionRate: entry.total > 0 ? (entry.done / entry.total) * 100 : 0,
   }));
 
-  const byProjectMap = new Map<number, ProjectStats>();
-  activities.forEach((a) => {
-    const entry =
-      byProjectMap.get(a.projectId) ??
-      ({
-        projectId: a.projectId,
-        name: projectNameById.get(a.projectId) ?? `#${a.projectId}`,
-        total: 0,
-        late: 0,
-        exceededHours: 0,
-      } satisfies ProjectStats);
-    entry.total += 1;
-    if (a.status === ActivityStatus.LATE) entry.late += 1;
-    entry.exceededHours += a.exceededHours || 0;
-    byProjectMap.set(a.projectId, entry);
-  });
-  const byProject = Array.from(byProjectMap.values()).sort((a, b) => b.late - a.late);
+  // "Gargalos" — individual activities that are actually causing delays (late, or completed
+  // late), not grouped by project since in practice there's only ever the one fixed checklist.
+  const bottlenecks: ActivityBottleneckStats[] = activities
+    .filter((a) => a.status === ActivityStatus.LATE || (a.exceededHours || 0) > 0)
+    .map((a) => ({
+      activityId: a.id,
+      title: a.title,
+      responsibleName: a.responsibleId ? (userNameById.get(a.responsibleId) ?? `#${a.responsibleId}`) : '—',
+      status: a.status,
+      exceededHours: a.exceededHours || 0,
+    }))
+    .sort((a, b) => b.exceededHours - a.exceededHours);
 
   return {
     activeProjects,
@@ -125,6 +119,6 @@ export function computeDashboardStats(
     onTimeRate,
     statusCounts,
     byResponsible,
-    byProject,
+    bottlenecks,
   };
 }

@@ -187,28 +187,38 @@ export function DashboardPage() {
 
           <Card withBorder padding="md">
             <Text fw={600} mb="sm">
-              Gargalos por projeto
+              Gargalos por atividade
             </Text>
-            <Table>
-              <Table.Thead>
-                <Table.Tr>
-                  <Table.Th>Projeto</Table.Th>
-                  <Table.Th>Total</Table.Th>
-                  <Table.Th>Atrasadas</Table.Th>
-                  <Table.Th>Horas excedentes</Table.Th>
-                </Table.Tr>
-              </Table.Thead>
-              <Table.Tbody>
-                {stats.byProject.map((row) => (
-                  <Table.Tr key={row.projectId}>
-                    <Table.Td>{row.name}</Table.Td>
-                    <Table.Td>{row.total}</Table.Td>
-                    <Table.Td c={row.late > 0 ? 'red' : undefined}>{row.late}</Table.Td>
-                    <Table.Td>{row.exceededHours.toFixed(1)}</Table.Td>
+            {stats.bottlenecks.length === 0 ? (
+              <Text size="sm" c="dimmed">
+                Nenhum gargalo neste mês.
+              </Text>
+            ) : (
+              <Table>
+                <Table.Thead>
+                  <Table.Tr>
+                    <Table.Th>Atividade</Table.Th>
+                    <Table.Th>Responsável</Table.Th>
+                    <Table.Th>Status</Table.Th>
+                    <Table.Th>Horas excedentes</Table.Th>
                   </Table.Tr>
-                ))}
-              </Table.Tbody>
-            </Table>
+                </Table.Thead>
+                <Table.Tbody>
+                  {stats.bottlenecks.map((row) => (
+                    <Table.Tr key={row.activityId}>
+                      <Table.Td>{row.title}</Table.Td>
+                      <Table.Td>{row.responsibleName}</Table.Td>
+                      <Table.Td>
+                        <Text c={STATUS_COLOR[row.status]} fw={600} size="sm">
+                          {STATUS_LABEL[row.status]}
+                        </Text>
+                      </Table.Td>
+                      <Table.Td>{row.exceededHours.toFixed(1)}</Table.Td>
+                    </Table.Tr>
+                  ))}
+                </Table.Tbody>
+              </Table>
+            )}
           </Card>
         </Stack>
       )}
