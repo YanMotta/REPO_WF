@@ -1,5 +1,9 @@
 # Workflow Brasal
 
+[![Last Commit](https://img.shields.io/github/last-commit/YanMotta/REPO_WF)](https://github.com/YanMotta/REPO_WF/commits/main)
+[![Top Language](https://img.shields.io/github/languages/top/YanMotta/REPO_WF)](https://github.com/YanMotta/REPO_WF)
+[![Repo Size](https://img.shields.io/github/repo-size/YanMotta/REPO_WF)](https://github.com/YanMotta/REPO_WF)
+
 Sistema interno de gestão de projetos e atividades, com foco no checklist recorrente de
 fechamento contábil mensal. Ver [workflow-brasal-spec.md](workflow-brasal-spec.md) para a
 especificação completa do produto.
