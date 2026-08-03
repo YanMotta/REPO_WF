@@ -8,11 +8,18 @@ import { Activity } from './entities/activity.entity';
 import { ApproachingDeadlineJob } from './jobs/approaching-deadline.job';
 import { LateJob } from './jobs/late.job';
 import { DependencyResolutionListener } from './listeners/dependency-resolution.listener';
+import { ActivityOwnershipGuard } from '../common/guards/activity-ownership.guard';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Activity, ActivityDependency, ActivityHistory])],
   controllers: [ActivitiesController],
-  providers: [ActivitiesService, DependencyResolutionListener, LateJob, ApproachingDeadlineJob],
+  providers: [
+    ActivitiesService,
+    DependencyResolutionListener,
+    LateJob,
+    ApproachingDeadlineJob,
+    ActivityOwnershipGuard,
+  ],
   exports: [ActivitiesService],
 })
 export class ActivitiesModule {}

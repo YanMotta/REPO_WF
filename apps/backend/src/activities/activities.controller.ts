@@ -8,9 +8,14 @@ import {
   Patch,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { Role } from '@workflow-brasal/shared';
 import { CurrentUser, AuthenticatedUser } from '../common/decorators/current-user.decorator';
+import { Roles } from '../common/decorators/roles.decorator';
+import { ActivityOwnershipGuard } from '../common/guards/activity-ownership.guard';
+import { RolesGuard } from '../common/guards/roles.guard';
 import { ActivitiesService } from './activities.service';
 import { ActivityFilterDto } from './dto/activity-filter.dto';
 import { ChangeCoResponsibleDto } from './dto/change-co-responsible.dto';
@@ -25,6 +30,8 @@ import { UpdateActivityDto } from './dto/update-activity.dto';
 export class ActivitiesController {
   constructor(private readonly activitiesService: ActivitiesService) {}
 
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
   @Post()
   create(@Body() dto: CreateActivityDto, @CurrentUser() user: AuthenticatedUser) {
     return this.activitiesService.create(dto, user.id);
@@ -40,11 +47,15 @@ export class ActivitiesController {
     return this.activitiesService.findById(id);
   }
 
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
   @Patch(':id')
   update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateActivityDto) {
     return this.activitiesService.update(id, dto);
   }
 
+  /** MEMBER/MANAGER may only change status on activities they're responsible/co-responsible for. */
+  @UseGuards(ActivityOwnershipGuard)
   @Patch(':id/status')
   changeStatus(
     @Param('id', ParseIntPipe) id: number,
@@ -54,6 +65,8 @@ export class ActivitiesController {
     return this.activitiesService.changeStatus(id, dto, user.id);
   }
 
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
   @Patch(':id/responsible')
   changeResponsible(
     @Param('id', ParseIntPipe) id: number,
@@ -63,6 +76,9 @@ export class ActivitiesController {
     return this.activitiesService.changeResponsible(id, dto, user.id);
   }
 
+  /** MEMBER/MANAGER may only set/clear the co-responsible on activities they're
+   * responsible/co-responsible for. */
+  @UseGuards(ActivityOwnershipGuard)
   @Patch(':id/co-responsible')
   changeCoResponsible(
     @Param('id', ParseIntPipe) id: number,
@@ -83,6 +99,8 @@ export class ActivitiesController {
     return this.activitiesService.getDependencies(id);
   }
 
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
   @Post(':id/dependencies/:dependsOnId')
   addDependency(
     @Param('id', ParseIntPipe) id: number,
@@ -91,6 +109,8 @@ export class ActivitiesController {
     return this.activitiesService.addDependency(id, dependsOnId);
   }
 
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
   @Delete(':id/dependencies/:dependsOnId')
   removeDependency(
     @Param('id', ParseIntPipe) id: number,

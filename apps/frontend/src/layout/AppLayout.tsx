@@ -7,22 +7,25 @@ import {
   IconLayoutKanban,
   IconLogout,
 } from '@tabler/icons-react';
+import { Role } from '@workflow-brasal/shared';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { BrasalLogo } from '../components/BrasalLogo';
 
 const NAV_ITEMS = [
-  { label: 'Atividades', path: '/fechamento', icon: IconCalendarStats },
-  { label: 'Dashboard', path: '/dashboard', icon: IconLayoutDashboard },
-  { label: 'Quadro', path: '/quadro', icon: IconLayoutKanban },
-  { label: 'Cronogramas', path: '/projetos', icon: IconFolders },
-  { label: 'Checklist', path: '/modelos-fechamento', icon: IconChecklist },
+  { label: 'Atividades', path: '/fechamento', icon: IconCalendarStats, adminOnly: false },
+  { label: 'Dashboard', path: '/dashboard', icon: IconLayoutDashboard, adminOnly: true },
+  { label: 'Quadro', path: '/quadro', icon: IconLayoutKanban, adminOnly: false },
+  { label: 'Cronogramas', path: '/projetos', icon: IconFolders, adminOnly: true },
+  { label: 'Checklist', path: '/modelos-fechamento', icon: IconChecklist, adminOnly: true },
 ];
 
 export function AppLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const isAdmin = user?.role === Role.ADMIN;
+  const visibleNavItems = NAV_ITEMS.filter((item) => isAdmin || !item.adminOnly);
 
   function handleLogout() {
     logout();
@@ -34,7 +37,7 @@ export function AppLayout() {
       <AppShell.Navbar p="md" style={{ display: 'flex', flexDirection: 'column' }}>
         <BrasalLogo />
         <div style={{ marginTop: 24, flex: 1 }}>
-          {NAV_ITEMS.map((item) => (
+          {visibleNavItems.map((item) => (
             <NavLink
               key={item.path}
               label={item.label}

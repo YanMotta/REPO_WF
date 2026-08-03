@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
+import { RequireAdmin } from './auth/RequireAdmin';
 import { RequireAuth } from './auth/RequireAuth';
 import { AppLayout } from './layout/AppLayout';
 import { AtividadesPage } from './pages/AtividadesPage';
@@ -21,11 +22,39 @@ export function App() {
       >
         <Route path="/" element={<Navigate to="/fechamento" replace />} />
         <Route path="/fechamento" element={<AtividadesPage />} />
-        <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/quadro" element={<KanbanPage />} />
-        <Route path="/projetos/:id" element={<KanbanPage />} />
-        <Route path="/projetos" element={<ProjetosPage />} />
-        <Route path="/modelos-fechamento" element={<ChecklistPage />} />
+        <Route
+          path="/dashboard"
+          element={
+            <RequireAdmin>
+              <DashboardPage />
+            </RequireAdmin>
+          }
+        />
+        <Route
+          path="/projetos/:id"
+          element={
+            <RequireAdmin>
+              <KanbanPage />
+            </RequireAdmin>
+          }
+        />
+        <Route
+          path="/projetos"
+          element={
+            <RequireAdmin>
+              <ProjetosPage />
+            </RequireAdmin>
+          }
+        />
+        <Route
+          path="/modelos-fechamento"
+          element={
+            <RequireAdmin>
+              <ChecklistPage />
+            </RequireAdmin>
+          }
+        />
       </Route>
     </Routes>
   );

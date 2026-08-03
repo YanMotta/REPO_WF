@@ -1,7 +1,9 @@
 import { Popover, Select, Stack, Text, UnstyledButton } from '@mantine/core';
+import { Role } from '@workflow-brasal/shared';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { changeActivityCoResponsible } from '../../api/activities';
+import { useAuth } from '../../auth/AuthContext';
 
 interface ResponsibleCellProps {
   activityId: number;
@@ -13,7 +15,8 @@ interface ResponsibleCellProps {
 }
 
 /** Click the responsible name to assign/change/clear the co-responsible — a stand-in who can
- * pick up the activity if the primary responsible is on vacation or overloaded. */
+ * pick up the activity if the primary responsible is on vacation or overloaded. Only an admin,
+ * or the activity's own responsible/co-responsible, can do this. */
 export function ResponsibleCell({
   activityId,
   responsibleName,
@@ -24,6 +27,8 @@ export function ResponsibleCell({
 }: ResponsibleCellProps) {
   const [opened, setOpened] = useState(false);
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const canEdit = user?.role === Role.ADMIN || user?.id === responsibleId || user?.id === coResponsibleId;
 
   const mutation = useMutation({
     mutationFn: (newCoResponsibleId: number | null) =>
@@ -33,6 +38,19 @@ export function ResponsibleCell({
 
   const coResponsibleName = coResponsibleId != null ? (userNameById.get(coResponsibleId) ?? '—') : null;
   const availableOptions = userOptions.filter((option) => Number(option.value) !== responsibleId);
+
+  if (!canEdit) {
+    return (
+      <Stack gap={0}>
+        <Text size="sm">{responsibleName}</Text>
+        {coResponsibleName && (
+          <Text size="xs" c="dimmed">
+            Co-resp.: {coResponsibleName}
+          </Text>
+        )}
+      </Stack>
+    );
+  }
 
   return (
     <Popover opened={opened} onChange={setOpened} position="bottom-start" withArrow shadow="md">
