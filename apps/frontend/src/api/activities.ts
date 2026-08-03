@@ -71,3 +71,7 @@ export function changeActivityCoResponsible(
 export function generateClosure(month?: number, year?: number): Promise<{ created: number }> {
   return api.post<{ created: number }>('/closure/generate', { month, year });
 }
+
+export function deleteClosure(month: number, year: number): Promise<{ deleted: number }> {
+  return api.delete<{ deleted: number }>(`/closure?month=${month}&year=${year}`);
+}

@@ -1,9 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { ActivitiesService } from '../activities/activities.service';
+import { ActivityDependency } from '../activities/entities/activity-dependency.entity';
+import { ActivityHistory } from '../activities/entities/activity-history.entity';
 import { Activity } from '../activities/entities/activity.entity';
 import { ActivityTemplatesService } from '../activity-templates/activity-templates.service';
+import { NotificationLog } from '../notifications/entities/notification-log.entity';
 import { ProjectsService } from '../projects/projects.service';
 
 @Injectable()
@@ -14,6 +17,12 @@ export class ClosureService {
     private readonly activitiesService: ActivitiesService,
     @InjectRepository(Activity)
     private readonly activitiesRepository: Repository<Activity>,
+    @InjectRepository(ActivityDependency)
+    private readonly dependenciesRepository: Repository<ActivityDependency>,
+    @InjectRepository(ActivityHistory)
+    private readonly historyRepository: Repository<ActivityHistory>,
+    @InjectRepository(NotificationLog)
+    private readonly notificationLogRepository: Repository<NotificationLog>,
   ) {}
 
   /**
@@ -85,6 +94,29 @@ export class ClosureService {
     }
 
     return { created };
+  }
+
+  /**
+   * Deletes every Activity generated for (month, year), plus every row elsewhere that references
+   * one of them. The ActivityDependency/ActivityHistory FKs declare ON DELETE CASCADE, but the
+   * dev sqljs driver doesn't actually enforce FK constraints at runtime (verified: PRAGMA
+   * foreign_keys reads back 0), so cascade never fires there — clean up explicitly instead of
+   * relying on it, which also works unconditionally against the mssql prod driver.
+   */
+  async deleteForMonth(month: number, year: number): Promise<{ deleted: number }> {
+    const activities = await this.activitiesRepository.find({
+      where: { dueDateRuleMonth: month, dueDateRuleYear: year },
+    });
+    if (!activities.length) return { deleted: 0 };
+
+    const ids = activities.map((a) => a.id);
+    await this.dependenciesRepository.delete({ activityId: In(ids) });
+    await this.dependenciesRepository.delete({ dependsOnActivityId: In(ids) });
+    await this.historyRepository.delete({ activityId: In(ids) });
+    await this.notificationLogRepository.delete({ activityId: In(ids) });
+    await this.activitiesRepository.delete({ dueDateRuleMonth: month, dueDateRuleYear: year });
+
+    return { deleted: activities.length };
   }
 
   private findGeneratedActivity(

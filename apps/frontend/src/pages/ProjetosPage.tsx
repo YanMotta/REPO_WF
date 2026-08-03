@@ -1,9 +1,12 @@
-import { Card, Group, Loader, Text, Title, UnstyledButton } from '@mantine/core';
-import { useQuery } from '@tanstack/react-query';
+import { ActionIcon, Card, Group, Loader, Text, Title, UnstyledButton } from '@mantine/core';
+import { notifications } from '@mantine/notifications';
+import { IconTrash } from '@tabler/icons-react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ActivityStatus } from '@workflow-brasal/shared';
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { listActivities } from '../api/activities';
+import { deleteClosure, listActivities } from '../api/activities';
+import { ApiError } from '../api/client';
 
 const now = new Date();
 const CURRENT_MONTH = now.getMonth() + 1;
@@ -18,7 +21,22 @@ interface MonthCard {
 
 export function ProjetosPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const activitiesQuery = useQuery({ queryKey: ['activities', 'all'], queryFn: () => listActivities() });
+
+  const deleteMutation = useMutation({
+    mutationFn: ({ month, year }: { month: number; year: number }) => deleteClosure(month, year),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['activities'] });
+      notifications.show({ color: 'green', message: 'Cronograma excluído.' });
+    },
+    onError: (err: unknown) =>
+      notifications.show({
+        color: 'red',
+        title: 'Erro ao excluir cronograma',
+        message: err instanceof ApiError ? err.message : 'Erro inesperado',
+      }),
+  });
 
   const monthCards = useMemo<MonthCard[]>(() => {
     const grouped = new Map<string, MonthCard>();
@@ -45,6 +63,15 @@ export function ProjetosPage() {
     return Array.from(grouped.values()).sort((a, b) => b.year - a.year || b.month - a.month);
   }, [activitiesQuery.data]);
 
+  function confirmDelete(card: MonthCard) {
+    const confirmed = window.confirm(
+      `Excluir o cronograma de ${String(card.month).padStart(2, '0')}/${card.year}? ` +
+        `Essa ação remove todas as ${card.total} atividade${card.total === 1 ? '' : 's'} desse mês e não pode ser desfeita.`,
+    );
+    if (!confirmed) return;
+    deleteMutation.mutate({ month: card.month, year: card.year });
+  }
+
   return (
     <>
       <Title order={2} mb="md">
@@ -56,11 +83,25 @@ export function ProjetosPage() {
       ) : (
         <Group gap="md">
           {monthCards.map((card) => (
-            <UnstyledButton
-              key={`${card.year}-${card.month}`}
-              onClick={() => navigate(`/dashboard?month=${card.month}&year=${card.year}`)}
-            >
-              <Card withBorder w={200} h={200} padding="md">
+            <Card key={`${card.year}-${card.month}`} withBorder w={200} h={200} padding="md" pos="relative">
+              <ActionIcon
+                variant="subtle"
+                color="red"
+                pos="absolute"
+                top={8}
+                right={8}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  confirmDelete(card);
+                }}
+              >
+                <IconTrash size={16} />
+              </ActionIcon>
+              <UnstyledButton
+                onClick={() => navigate(`/dashboard?month=${card.month}&year=${card.year}`)}
+                w="100%"
+                h="100%"
+              >
                 <Group h="100%" justify="center" align="center">
                   <div style={{ textAlign: 'center' }}>
                     <Text fw={700}>
@@ -74,8 +115,8 @@ export function ProjetosPage() {
                     </Text>
                   </div>
                 </Group>
-              </Card>
-            </UnstyledButton>
+              </UnstyledButton>
+            </Card>
           ))}
         </Group>
       )}
