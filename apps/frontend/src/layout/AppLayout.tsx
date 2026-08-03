@@ -6,7 +6,6 @@ import {
   IconLayoutDashboard,
   IconLayoutKanban,
   IconLogout,
-  IconTimeline,
 } from '@tabler/icons-react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
@@ -17,7 +16,6 @@ const NAV_ITEMS = [
   { label: 'Dashboard', path: '/dashboard', icon: IconLayoutDashboard },
   { label: 'Quadro', path: '/quadro', icon: IconLayoutKanban },
   { label: 'Cronogramas', path: '/projetos', icon: IconFolders },
-  { label: 'Gantt', path: '/gantt', icon: IconTimeline },
   { label: 'Checklist', path: '/modelos-fechamento', icon: IconChecklist },
 ];
 
