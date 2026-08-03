@@ -16,7 +16,6 @@ import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { listActivities } from '../api/activities';
-import { listProjects } from '../api/projects';
 import { listUsers } from '../api/users';
 import { CurrentMonthBadge } from '../components/CurrentMonthBadge';
 import { KANBAN_COLUMNS, STATUS_COLOR, STATUS_LABEL } from '../constants/status';
@@ -54,19 +53,15 @@ export function DashboardPage() {
     queryFn: () => listActivities({ month, year }),
     enabled: hasExplicitMonth || !closureMonth.isLoading,
   });
-  const projectsQuery = useQuery({ queryKey: ['projects'], queryFn: listProjects });
   const usersQuery = useQuery({ queryKey: ['users'], queryFn: listUsers });
 
   const stats = useMemo(() => {
-    if (!activitiesQuery.data || !projectsQuery.data || !usersQuery.data) return null;
-    return computeDashboardStats(activitiesQuery.data, projectsQuery.data, usersQuery.data);
-  }, [activitiesQuery.data, projectsQuery.data, usersQuery.data]);
+    if (!activitiesQuery.data || !usersQuery.data) return null;
+    return computeDashboardStats(activitiesQuery.data, usersQuery.data);
+  }, [activitiesQuery.data, usersQuery.data]);
 
   const isLoading =
-    (!hasExplicitMonth && closureMonth.isLoading) ||
-    activitiesQuery.isLoading ||
-    projectsQuery.isLoading ||
-    usersQuery.isLoading;
+    (!hasExplicitMonth && closureMonth.isLoading) || activitiesQuery.isLoading || usersQuery.isLoading;
 
   return (
     <>
@@ -92,7 +87,6 @@ export function DashboardPage() {
       ) : (
         <Stack gap="lg">
           <SimpleGrid cols={{ base: 2, sm: 4 }}>
-            <StatCard label="Projetos ativos" value={String(stats.activeProjects)} />
             <StatCard label="Atividades atrasadas" value={String(stats.lateCount)} />
             <StatCard label="Horas excedentes acumuladas" value={stats.totalExceededHours.toFixed(1)} />
             <StatCard label="Atraso médio (h)" value={stats.averageDelayHours.toFixed(1)} />

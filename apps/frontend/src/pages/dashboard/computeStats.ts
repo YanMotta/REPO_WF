@@ -1,4 +1,4 @@
-import { ActivityDto, ActivityStatus, ProjectDto, ProjectStatus, UserDto } from '@workflow-brasal/shared';
+import { ActivityDto, ActivityStatus, UserDto } from '@workflow-brasal/shared';
 import { KANBAN_COLUMNS } from '../../constants/status';
 
 export interface ResponsibleStats {
@@ -19,7 +19,6 @@ export interface ActivityBottleneckStats {
 }
 
 export interface DashboardStats {
-  activeProjects: number;
   lateCount: number;
   totalExceededHours: number;
   averageDelayHours: number;
@@ -36,11 +35,7 @@ function average(values: number[]): number {
   return values.reduce((sum, v) => sum + v, 0) / values.length;
 }
 
-export function computeDashboardStats(
-  activities: ActivityDto[],
-  projects: ProjectDto[],
-  users: UserDto[],
-): DashboardStats {
+export function computeDashboardStats(activities: ActivityDto[], users: UserDto[]): DashboardStats {
   const userNameById = new Map(users.map((u) => [u.id, u.name]));
 
   const statusCounts = Object.fromEntries(
@@ -70,8 +65,6 @@ export function computeDashboardStats(
   const completionRate = total > 0 ? (doneActivities.length / total) * 100 : 0;
   const onTimeCount = doneActivities.filter((a) => (a.exceededHours || 0) === 0).length;
   const onTimeRate = doneActivities.length > 0 ? (onTimeCount / doneActivities.length) * 100 : null;
-
-  const activeProjects = projects.filter((p) => p.status === ProjectStatus.ACTIVE).length;
 
   const byResponsibleMap = new Map<number, ResponsibleStats>();
   activities.forEach((a) => {
@@ -110,7 +103,6 @@ export function computeDashboardStats(
     .sort((a, b) => b.exceededHours - a.exceededHours);
 
   return {
-    activeProjects,
     lateCount,
     totalExceededHours,
     averageDelayHours,
