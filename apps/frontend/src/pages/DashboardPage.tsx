@@ -12,11 +12,9 @@ import {
 } from '@mantine/core';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
 import { listActivities } from '../api/activities';
 import { listProjects } from '../api/projects';
 import { listUsers } from '../api/users';
-import { MonthYearSelector } from '../components/MonthYearSelector';
 import { KANBAN_COLUMNS, STATUS_COLOR, STATUS_LABEL } from '../constants/status';
 import { computeDashboardStats } from './dashboard/computeStats';
 
@@ -36,14 +34,8 @@ function StatCard({ label, value }: { label: string; value: string }) {
 }
 
 export function DashboardPage() {
-  const [searchParams, setSearchParams] = useSearchParams();
-
-  const month = Number(searchParams.get('month') ?? now.getMonth() + 1);
-  const year = Number(searchParams.get('year') ?? now.getFullYear());
-
-  function handleChange(newMonth: number, newYear: number) {
-    setSearchParams({ month: String(newMonth), year: String(newYear) });
-  }
+  const month = now.getMonth() + 1;
+  const year = now.getFullYear();
 
   const activitiesQuery = useQuery({
     queryKey: ['activities', 'dashboard', month, year],
@@ -61,10 +53,9 @@ export function DashboardPage() {
 
   return (
     <>
-      <Group justify="space-between" mb="md">
-        <Title order={2}>Dashboard</Title>
-        <MonthYearSelector month={month} year={year} onChange={handleChange} />
-      </Group>
+      <Title order={2} mb="md">
+        Dashboard
+      </Title>
 
       {isLoading || !stats ? (
         <Loader />

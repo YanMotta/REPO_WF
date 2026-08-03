@@ -3,12 +3,11 @@ import { Badge, Card, Group, Paper, Stack, Text, Title } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ActivityDto, ActivityStatus } from '@workflow-brasal/shared';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { changeActivityStatus, listActivities } from '../api/activities';
 import { ApiError } from '../api/client';
 import { listUsers } from '../api/users';
-import { MonthYearSelector } from '../components/MonthYearSelector';
 import { KANBAN_COLUMNS, STATUS_COLOR, STATUS_LABEL } from '../constants/status';
 import { formatDate } from '../utils/format';
 
@@ -18,8 +17,8 @@ export function KanbanPage() {
   const { id: projectIdParam } = useParams();
   const projectId = projectIdParam ? Number(projectIdParam) : undefined;
 
-  const [month, setMonth] = useState(now.getMonth() + 1);
-  const [year, setYear] = useState(now.getFullYear());
+  const month = now.getMonth() + 1;
+  const year = now.getFullYear();
 
   const queryClient = useQueryClient();
   const queryKey = ['activities', 'kanban', month, year, projectId];
@@ -79,17 +78,9 @@ export function KanbanPage() {
 
   return (
     <>
-      <Group justify="space-between" mb="md">
-        <Title order={2}>Quadro Kanban</Title>
-        <MonthYearSelector
-          month={month}
-          year={year}
-          onChange={(m, y) => {
-            setMonth(m);
-            setYear(y);
-          }}
-        />
-      </Group>
+      <Title order={2} mb="md">
+        Quadro Kanban
+      </Title>
 
       <DragDropContext onDragEnd={handleDragEnd}>
         <Group align="flex-start" wrap="nowrap" style={{ overflowX: 'auto' }}>
