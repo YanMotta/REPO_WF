@@ -10,16 +10,14 @@ import { ApiError } from '../api/client';
 import { listUsers } from '../api/users';
 import { CurrentMonthBadge } from '../components/CurrentMonthBadge';
 import { KANBAN_COLUMNS, STATUS_COLOR, STATUS_LABEL } from '../constants/status';
+import { useCurrentClosureMonth } from '../hooks/useCurrentClosureMonth';
 import { formatDate } from '../utils/format';
-
-const now = new Date();
 
 export function KanbanPage() {
   const { id: projectIdParam } = useParams();
   const projectId = projectIdParam ? Number(projectIdParam) : undefined;
 
-  const month = now.getMonth() + 1;
-  const year = now.getFullYear();
+  const { month, year, isLoading: monthLoading } = useCurrentClosureMonth();
 
   const queryClient = useQueryClient();
   const queryKey = ['activities', 'kanban', month, year, projectId];
@@ -27,6 +25,7 @@ export function KanbanPage() {
   const activitiesQuery = useQuery({
     queryKey,
     queryFn: () => listActivities({ month, year, projectId }),
+    enabled: !monthLoading,
   });
 
   const usersQuery = useQuery({ queryKey: ['users'], queryFn: listUsers });

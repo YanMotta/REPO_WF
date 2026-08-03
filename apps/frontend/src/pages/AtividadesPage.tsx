@@ -6,14 +6,11 @@ import { listActivities } from '../api/activities';
 import { listUsers } from '../api/users';
 import { CurrentMonthBadge } from '../components/CurrentMonthBadge';
 import { STATUS_COLOR, STATUS_LABEL } from '../constants/status';
+import { useCurrentClosureMonth } from '../hooks/useCurrentClosureMonth';
 import { formatBusinessDayRule, formatDate, formatTime } from '../utils/format';
 import { ActivityDetailsDrawer } from './atividades/ActivityDetailsDrawer';
 import { PredecessorCell } from './atividades/PredecessorCell';
 import { ResponsibleCell } from './atividades/ResponsibleCell';
-
-const now = new Date();
-const CURRENT_MONTH = now.getMonth() + 1;
-const CURRENT_YEAR = now.getFullYear();
 
 const ALL_RESPONSIBLE = 'all';
 const NO_RESPONSIBLE = 'none';
@@ -23,9 +20,12 @@ export function AtividadesPage() {
   const [responsibleFilter, setResponsibleFilter] = useState<string>(ALL_RESPONSIBLE);
   const [numberFilter, setNumberFilter] = useState('');
 
+  const { month, year, isLoading: monthLoading } = useCurrentClosureMonth();
+
   const activitiesQuery = useQuery({
-    queryKey: ['activities', CURRENT_YEAR, CURRENT_MONTH],
-    queryFn: () => listActivities({ month: CURRENT_MONTH, year: CURRENT_YEAR }),
+    queryKey: ['activities', year, month],
+    queryFn: () => listActivities({ month, year }),
+    enabled: !monthLoading,
   });
 
   const usersQuery = useQuery({ queryKey: ['users'], queryFn: listUsers });
@@ -81,13 +81,13 @@ export function AtividadesPage() {
     });
   }, [sortedActivities, rowNumberById, responsibleFilter, numberFilter]);
 
-  const isLoading = activitiesQuery.isLoading;
+  const isLoading = monthLoading || activitiesQuery.isLoading;
 
   return (
     <>
       <Group justify="space-between" mb="xs">
         <Title order={2}>Cronogramas — Atividades do mês</Title>
-        <CurrentMonthBadge month={CURRENT_MONTH} year={CURRENT_YEAR} />
+        <CurrentMonthBadge month={month} year={year} />
       </Group>
       <Text c="dimmed" mb="md">
         {sortedActivities.length} atividade{sortedActivities.length === 1 ? '' : 's'} neste mês

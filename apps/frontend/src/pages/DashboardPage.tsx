@@ -20,9 +20,8 @@ import { listProjects } from '../api/projects';
 import { listUsers } from '../api/users';
 import { CurrentMonthBadge } from '../components/CurrentMonthBadge';
 import { KANBAN_COLUMNS, STATUS_COLOR, STATUS_LABEL } from '../constants/status';
+import { useCurrentClosureMonth } from '../hooks/useCurrentClosureMonth';
 import { computeDashboardStats } from './dashboard/computeStats';
-
-const now = new Date();
 
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
@@ -41,16 +40,19 @@ export function DashboardPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
+  const closureMonth = useCurrentClosureMonth();
+
   // Arriving with explicit month/year (drill-down from a Cronogramas month card) shows that
-  // month instead of the current one, with a way back. Otherwise this always shows the
-  // current month — there's no free-form picker.
+  // month instead of the default one, with a way back. Otherwise this shows the most recently
+  // generated closure's month — there's no free-form picker.
   const hasExplicitMonth = searchParams.has('month') && searchParams.has('year');
-  const month = hasExplicitMonth ? Number(searchParams.get('month')) : now.getMonth() + 1;
-  const year = hasExplicitMonth ? Number(searchParams.get('year')) : now.getFullYear();
+  const month = hasExplicitMonth ? Number(searchParams.get('month')) : closureMonth.month;
+  const year = hasExplicitMonth ? Number(searchParams.get('year')) : closureMonth.year;
 
   const activitiesQuery = useQuery({
     queryKey: ['activities', 'dashboard', month, year],
     queryFn: () => listActivities({ month, year }),
+    enabled: hasExplicitMonth || !closureMonth.isLoading,
   });
   const projectsQuery = useQuery({ queryKey: ['projects'], queryFn: listProjects });
   const usersQuery = useQuery({ queryKey: ['users'], queryFn: listUsers });
@@ -60,7 +62,11 @@ export function DashboardPage() {
     return computeDashboardStats(activitiesQuery.data, projectsQuery.data, usersQuery.data);
   }, [activitiesQuery.data, projectsQuery.data, usersQuery.data]);
 
-  const isLoading = activitiesQuery.isLoading || projectsQuery.isLoading || usersQuery.isLoading;
+  const isLoading =
+    (!hasExplicitMonth && closureMonth.isLoading) ||
+    activitiesQuery.isLoading ||
+    projectsQuery.isLoading ||
+    usersQuery.isLoading;
 
   return (
     <>
