@@ -1,10 +1,10 @@
-import { ActionIcon, Badge, Button, Group, Loader, Table, Title } from '@mantine/core';
+import { ActionIcon, Badge, Button, Group, Loader, Table, Text, Title } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { IconEdit, IconPlus } from '@tabler/icons-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ActivityTemplateDto } from '@workflow-brasal/shared';
 import { useState } from 'react';
-import { createActivity, CreateActivityDto } from '../api/activities';
+import { createActivity, CreateActivityDto, generateClosure } from '../api/activities';
 import {
   ActivityTemplateInput,
   createActivityTemplate,
@@ -15,11 +15,14 @@ import {
 import { ApiError } from '../api/client';
 import { listProjects } from '../api/projects';
 import { listUsers } from '../api/users';
+import { MonthYearSelector } from '../components/MonthYearSelector';
 import { formatBusinessDayRule } from '../utils/format';
 import { CreateActivityModal } from './checklist/CreateActivityModal';
 import { TemplateFormModal } from './checklist/TemplateFormModal';
 
 const FECHAMENTO_MENSAL_PROJECT_NAME = 'Fechamento Mensal';
+
+const now = new Date();
 
 export function ChecklistPage() {
   const queryClient = useQueryClient();
@@ -27,6 +30,8 @@ export function ChecklistPage() {
   const [editingDependsOn, setEditingDependsOn] = useState<number[]>([]);
   const [templateModalOpen, setTemplateModalOpen] = useState(false);
   const [activityModalOpen, setActivityModalOpen] = useState(false);
+  const [generateMonth, setGenerateMonth] = useState(now.getMonth() + 1);
+  const [generateYear, setGenerateYear] = useState(now.getFullYear());
 
   const templatesQuery = useQuery({ queryKey: ['activity-templates'], queryFn: listActivityTemplates });
   const usersQuery = useQuery({ queryKey: ['users'], queryFn: listUsers });
@@ -81,6 +86,30 @@ export function ChecklistPage() {
       }),
   });
 
+  const generateClosureMutation = useMutation({
+    mutationFn: () => generateClosure(generateMonth, generateYear),
+    onSuccess: ({ created }) => {
+      queryClient.invalidateQueries({ queryKey: ['activities'] });
+      notifications.show({
+        color: 'green',
+        message:
+          created > 0
+            ? `Cronograma gerado: ${created} atividade${created === 1 ? '' : 's'} criada${created === 1 ? '' : 's'}.`
+            : 'Nenhuma atividade nova — o cronograma desse mês já existe.',
+      });
+    },
+    onError: (err: unknown) =>
+      notifications.show({
+        color: 'red',
+        title: 'Erro ao gerar cronograma',
+        message: err instanceof ApiError ? err.message : 'Erro inesperado',
+      }),
+  });
+
+  const isPastMonth =
+    generateYear < now.getFullYear() ||
+    (generateYear === now.getFullYear() && generateMonth < now.getMonth() + 1);
+
   async function openNewTemplate() {
     setEditing(null);
     setEditingDependsOn([]);
@@ -116,6 +145,29 @@ export function ChecklistPage() {
             Novo modelo
           </Button>
         </Group>
+      </Group>
+
+      <Group mb="md" align="flex-end">
+        <MonthYearSelector
+          month={generateMonth}
+          year={generateYear}
+          onChange={(m, y) => {
+            setGenerateMonth(m);
+            setGenerateYear(y);
+          }}
+        />
+        <Button
+          onClick={() => generateClosureMutation.mutate()}
+          loading={generateClosureMutation.isPending}
+          disabled={isPastMonth}
+        >
+          Gerar cronograma
+        </Button>
+        {isPastMonth && (
+          <Text size="xs" c="dimmed">
+            Não é possível gerar cronograma de meses passados.
+          </Text>
+        )}
       </Group>
 
       {isLoading ? (

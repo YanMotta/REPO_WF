@@ -1,8 +1,8 @@
 import { Badge, Group, Loader, Select, Table, Text, TextInput, Title, UnstyledButton } from '@mantine/core';
 import { ActivityDto } from '@workflow-brasal/shared';
-import { useMutation, useQuery } from '@tanstack/react-query';
-import { useEffect, useMemo, useState } from 'react';
-import { generateClosure, listActivities } from '../api/activities';
+import { useQuery } from '@tanstack/react-query';
+import { useMemo, useState } from 'react';
+import { listActivities } from '../api/activities';
 import { listUsers } from '../api/users';
 import { STATUS_COLOR, STATUS_LABEL } from '../constants/status';
 import { formatBusinessDayRule, formatDate, formatTime } from '../utils/format';
@@ -22,18 +22,9 @@ export function AtividadesPage() {
   const [responsibleFilter, setResponsibleFilter] = useState<string>(ALL_RESPONSIBLE);
   const [numberFilter, setNumberFilter] = useState('');
 
-  const generateMutation = useMutation({ mutationFn: () => generateClosure() });
-
-  useEffect(() => {
-    generateMutation.mutate();
-    // Only ever generate for the current month, on mount — never a client-chosen past month.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   const activitiesQuery = useQuery({
     queryKey: ['activities', CURRENT_YEAR, CURRENT_MONTH],
     queryFn: () => listActivities({ month: CURRENT_MONTH, year: CURRENT_YEAR }),
-    enabled: generateMutation.isSuccess || generateMutation.isError,
   });
 
   const usersQuery = useQuery({ queryKey: ['users'], queryFn: listUsers });
@@ -89,7 +80,7 @@ export function AtividadesPage() {
     });
   }, [sortedActivities, rowNumberById, responsibleFilter, numberFilter]);
 
-  const isLoading = generateMutation.isPending || activitiesQuery.isLoading;
+  const isLoading = activitiesQuery.isLoading;
 
   return (
     <>
