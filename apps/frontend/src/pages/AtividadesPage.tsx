@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import { listActivities } from '../api/activities';
 import { listUsers } from '../api/users';
+import { CurrentMonthBadge } from '../components/CurrentMonthBadge';
 import { STATUS_COLOR, STATUS_LABEL } from '../constants/status';
 import { formatBusinessDayRule, formatDate, formatTime } from '../utils/format';
 import { ActivityDetailsDrawer } from './atividades/ActivityDetailsDrawer';
@@ -84,9 +85,10 @@ export function AtividadesPage() {
 
   return (
     <>
-      <Title order={2} mb="xs">
-        Cronogramas — Atividades do mês
-      </Title>
+      <Group justify="space-between" mb="xs">
+        <Title order={2}>Cronogramas — Atividades do mês</Title>
+        <CurrentMonthBadge month={CURRENT_MONTH} year={CURRENT_YEAR} />
+      </Group>
       <Text c="dimmed" mb="md">
         {sortedActivities.length} atividade{sortedActivities.length === 1 ? '' : 's'} neste mês
       </Text>

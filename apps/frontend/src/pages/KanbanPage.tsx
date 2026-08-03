@@ -8,6 +8,7 @@ import { useParams } from 'react-router-dom';
 import { changeActivityStatus, listActivities } from '../api/activities';
 import { ApiError } from '../api/client';
 import { listUsers } from '../api/users';
+import { CurrentMonthBadge } from '../components/CurrentMonthBadge';
 import { KANBAN_COLUMNS, STATUS_COLOR, STATUS_LABEL } from '../constants/status';
 import { formatDate } from '../utils/format';
 
@@ -78,9 +79,10 @@ export function KanbanPage() {
 
   return (
     <>
-      <Title order={2} mb="md">
-        Quadro Kanban
-      </Title>
+      <Group justify="space-between" mb="md">
+        <Title order={2}>Quadro Kanban</Title>
+        <CurrentMonthBadge month={month} year={year} />
+      </Group>
 
       <DragDropContext onDragEnd={handleDragEnd}>
         <Group align="flex-start" wrap="nowrap" style={{ overflowX: 'auto' }}>

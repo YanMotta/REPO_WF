@@ -1,3 +1,23 @@
+const MONTH_LABELS = [
+  'Janeiro',
+  'Fevereiro',
+  'Março',
+  'Abril',
+  'Maio',
+  'Junho',
+  'Julho',
+  'Agosto',
+  'Setembro',
+  'Outubro',
+  'Novembro',
+  'Dezembro',
+];
+
+/** e.g. formatMonthYear(8, 2026) -> "Agosto 2026" */
+export function formatMonthYear(month: number, year: number): string {
+  return `${MONTH_LABELS[month - 1]} ${year}`;
+}
+
 export function formatDate(iso: string | null): string {
   if (!iso) return '—';
   const date = new Date(iso);

@@ -1,4 +1,5 @@
 import {
+  Button,
   Card,
   Group,
   Loader,
@@ -10,11 +11,14 @@ import {
   Text,
   Title,
 } from '@mantine/core';
+import { IconArrowLeft } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { listActivities } from '../api/activities';
 import { listProjects } from '../api/projects';
 import { listUsers } from '../api/users';
+import { CurrentMonthBadge } from '../components/CurrentMonthBadge';
 import { KANBAN_COLUMNS, STATUS_COLOR, STATUS_LABEL } from '../constants/status';
 import { computeDashboardStats } from './dashboard/computeStats';
 
@@ -34,8 +38,15 @@ function StatCard({ label, value }: { label: string; value: string }) {
 }
 
 export function DashboardPage() {
-  const month = now.getMonth() + 1;
-  const year = now.getFullYear();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  // Arriving with explicit month/year (drill-down from a Cronogramas month card) shows that
+  // month instead of the current one, with a way back. Otherwise this always shows the
+  // current month — there's no free-form picker.
+  const hasExplicitMonth = searchParams.has('month') && searchParams.has('year');
+  const month = hasExplicitMonth ? Number(searchParams.get('month')) : now.getMonth() + 1;
+  const year = hasExplicitMonth ? Number(searchParams.get('year')) : now.getFullYear();
 
   const activitiesQuery = useQuery({
     queryKey: ['activities', 'dashboard', month, year],
@@ -53,9 +64,22 @@ export function DashboardPage() {
 
   return (
     <>
-      <Title order={2} mb="md">
-        Dashboard
-      </Title>
+      <Group justify="space-between" mb="md">
+        <Group gap="sm">
+          {hasExplicitMonth && (
+            <Button
+              variant="subtle"
+              size="sm"
+              leftSection={<IconArrowLeft size={16} />}
+              onClick={() => navigate('/projetos')}
+            >
+              Voltar
+            </Button>
+          )}
+          <Title order={2}>Dashboard</Title>
+        </Group>
+        <CurrentMonthBadge month={month} year={year} />
+      </Group>
 
       {isLoading || !stats ? (
         <Loader />
