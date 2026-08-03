@@ -86,18 +86,18 @@ export function DashboardPage() {
         <Loader />
       ) : (
         <Stack gap="lg">
-          <SimpleGrid cols={{ base: 2, sm: 4 }}>
+          <SimpleGrid cols={{ base: 2, sm: 3 }}>
             <StatCard label="Atividades atrasadas" value={String(stats.lateCount)} />
             <StatCard label="Horas excedentes acumuladas" value={stats.totalExceededHours.toFixed(1)} />
             <StatCard label="Atraso médio (h)" value={stats.averageDelayHours.toFixed(1)} />
-            <StatCard
-              label="Lead time médio (dias)"
-              value={stats.averageLeadTimeDays != null ? stats.averageLeadTimeDays.toFixed(1) : '—'}
-            />
             <StatCard label="% conclusão" value={`${stats.completionRate.toFixed(0)}%`} />
             <StatCard
               label="% no prazo"
               value={stats.onTimeRate != null ? `${stats.onTimeRate.toFixed(0)}%` : '—'}
+            />
+            <StatCard
+              label="Lead time médio (dias)"
+              value={stats.averageLeadTimeDays != null ? stats.averageLeadTimeDays.toFixed(1) : '—'}
             />
           </SimpleGrid>
 
