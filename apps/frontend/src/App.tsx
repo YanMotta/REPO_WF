@@ -8,6 +8,7 @@ import { DashboardPage } from './pages/DashboardPage';
 import { KanbanPage } from './pages/KanbanPage';
 import { LoginPage } from './pages/LoginPage';
 import { ProjetosPage } from './pages/ProjetosPage';
+import { UsersPage } from './pages/UsersPage';
 
 export function App() {
   return (
@@ -52,6 +53,14 @@ export function App() {
           element={
             <RequireAdmin>
               <ChecklistPage />
+            </RequireAdmin>
+          }
+        />
+        <Route
+          path="/usuarios"
+          element={
+            <RequireAdmin>
+              <UsersPage />
             </RequireAdmin>
           }
         />

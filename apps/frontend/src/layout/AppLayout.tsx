@@ -6,6 +6,7 @@ import {
   IconLayoutDashboard,
   IconLayoutKanban,
   IconLogout,
+  IconUsers,
 } from '@tabler/icons-react';
 import { Role } from '@workflow-brasal/shared';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
@@ -18,6 +19,7 @@ const NAV_ITEMS = [
   { label: 'Quadro', path: '/quadro', icon: IconLayoutKanban, adminOnly: false },
   { label: 'Cronogramas', path: '/projetos', icon: IconFolders, adminOnly: true },
   { label: 'Checklist', path: '/modelos-fechamento', icon: IconChecklist, adminOnly: true },
+  { label: 'Usuários', path: '/usuarios', icon: IconUsers, adminOnly: true },
 ];
 
 export function AppLayout() {

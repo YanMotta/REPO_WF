@@ -1,9 +1,20 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Role } from '@workflow-brasal/shared';
-import { IsBoolean, IsEnum, IsOptional } from 'class-validator';
+import { IsBoolean, IsEmail, IsEnum, IsOptional, IsString, MinLength } from 'class-validator';
 
-/** Only an ADMIN may hit PATCH /users/:id — this is the sole way to change role/isActive. */
+/** Only an ADMIN may hit PATCH /users/:id. */
 export class UpdateUserDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MinLength(2)
+  name?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsEmail()
+  email?: string;
+
   @ApiPropertyOptional({ enum: Role })
   @IsOptional()
   @IsEnum(Role)

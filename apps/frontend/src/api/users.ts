@@ -1,6 +1,32 @@
-import { UserDto } from '@workflow-brasal/shared';
+import { Role, UserDto } from '@workflow-brasal/shared';
 import { api } from './client';
+
+export interface CreateUserInput {
+  name: string;
+  email: string;
+  password: string;
+  role: Role;
+}
+
+export interface UpdateUserInput {
+  name?: string;
+  email?: string;
+  role?: Role;
+  isActive?: boolean;
+}
 
 export function listUsers(): Promise<UserDto[]> {
   return api.get<UserDto[]>('/users');
+}
+
+export function createUser(input: CreateUserInput): Promise<UserDto> {
+  return api.post<UserDto>('/users', input);
+}
+
+export function updateUser(id: number, input: UpdateUserInput): Promise<UserDto> {
+  return api.patch<UserDto>(`/users/${id}`, input);
+}
+
+export function resetUserPassword(id: number, newPassword: string): Promise<void> {
+  return api.patch<void>(`/users/${id}/password`, { newPassword });
 }

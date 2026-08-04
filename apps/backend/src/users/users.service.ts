@@ -1,9 +1,13 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Role } from '@workflow-brasal/shared';
+import * as bcrypt from 'bcryptjs';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
+import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+
+const SALT_ROUNDS = 10;
 
 @Injectable()
 export class UsersService {
@@ -32,9 +36,42 @@ export class UsersService {
     return this.usersRepository.save(user);
   }
 
-  async update(id: number, dto: UpdateUserDto): Promise<User> {
+  /** Admin-driven creation with an explicit role — used by POST /users. */
+  async create(dto: CreateUserDto): Promise<User> {
+    const existing = await this.findByEmail(dto.email);
+    if (existing) throw new ConflictException('E-mail já cadastrado');
+
+    const passwordHash = await bcrypt.hash(dto.password, SALT_ROUNDS);
+    const user = this.usersRepository.create({
+      name: dto.name,
+      email: dto.email,
+      passwordHash,
+      role: dto.role,
+      isActive: true,
+    });
+    return this.usersRepository.save(user);
+  }
+
+  /** currentUserId guards against an admin deactivating or self-demoting their own account. */
+  async update(id: number, dto: UpdateUserDto, currentUserId: number): Promise<User> {
+    if (id === currentUserId && (dto.isActive === false || (dto.role && dto.role !== Role.ADMIN))) {
+      throw new ForbiddenException('Você não pode alterar seu próprio acesso de administrador');
+    }
+
     const user = await this.findById(id);
+
+    if (dto.email && dto.email !== user.email) {
+      const existing = await this.findByEmail(dto.email);
+      if (existing) throw new ConflictException('E-mail já cadastrado');
+    }
+
     Object.assign(user, dto);
     return this.usersRepository.save(user);
+  }
+
+  async resetPassword(id: number, newPassword: string): Promise<void> {
+    const user = await this.findById(id);
+    user.passwordHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
+    await this.usersRepository.save(user);
   }
 }
