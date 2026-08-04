@@ -18,21 +18,26 @@ export class ApproachingDeadlineListener {
 
   @OnEvent(DomainEvent.ActivityApproachingDeadline)
   async handle(payload: ActivityApproachingDeadlinePayload): Promise<void> {
-    const alreadyNotified = await this.notificationsService.hasAlreadyNotified(
-      payload.activityId,
-      NotificationType.APPROACHING_DEADLINE,
-    );
-    if (alreadyNotified) return;
-
     const activity = await this.activitiesService.findById(payload.activityId);
-    if (!activity.responsibleId) return;
-
-    await this.notificationsService.dispatch(
-      NotificationType.APPROACHING_DEADLINE,
-      activity.responsibleId,
-      activity.id,
-      `Prazo se aproximando: ${activity.title}`,
-      `A atividade "${activity.title}" vence em ${activity.deadline?.toISOString() ?? '—'}.`,
+    const recipientIds = [activity.responsibleId, activity.coResponsibleId].filter(
+      (id): id is number => id != null,
     );
+
+    for (const recipientId of new Set(recipientIds)) {
+      const alreadyNotified = await this.notificationsService.hasAlreadyNotified(
+        payload.activityId,
+        NotificationType.APPROACHING_DEADLINE,
+        recipientId,
+      );
+      if (alreadyNotified) continue;
+
+      await this.notificationsService.dispatch(
+        NotificationType.APPROACHING_DEADLINE,
+        recipientId,
+        activity.id,
+        `Prazo se aproximando: ${activity.title}`,
+        `A atividade "${activity.title}" vence em ${activity.deadline?.toISOString() ?? '—'}.`,
+      );
+    }
   }
 }

@@ -66,9 +66,13 @@ export class NotificationsService {
     return this.logsRepository.save(log);
   }
 
-  /** Enforces "notify once per activity" for events like APPROACHING_DEADLINE. */
-  async hasAlreadyNotified(activityId: number, type: NotificationType): Promise<boolean> {
-    const existing = await this.logsRepository.findOne({ where: { activityId, type } });
+  /** Enforces "notify once per activity per recipient" for events like APPROACHING_DEADLINE. */
+  async hasAlreadyNotified(
+    activityId: number,
+    type: NotificationType,
+    recipientId: number,
+  ): Promise<boolean> {
+    const existing = await this.logsRepository.findOne({ where: { activityId, type, recipientId } });
     return !!existing;
   }
 }
