@@ -21,6 +21,9 @@ interface AuthContextValue {
   user: UserDto | null;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
+  register: (name: string, email: string, password: string) => Promise<{ message: string }>;
+  verifyEmail: (token: string) => Promise<void>;
+  resendVerification: (email: string) => Promise<{ message: string }>;
   logout: () => void;
 }
 
@@ -55,6 +58,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setStored(result);
   }, []);
 
+  const register = useCallback(async (name: string, email: string, password: string) => {
+    return api.post<{ message: string }>('/auth/register', { name, email, password });
+  }, []);
+
+  const verifyEmail = useCallback(async (token: string) => {
+    const result = await api.post<StoredAuth>('/auth/verify-email', { token });
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(result));
+    setStored(result);
+  }, []);
+
+  const resendVerification = useCallback(async (email: string) => {
+    return api.post<{ message: string }>('/auth/resend-verification', { email });
+  }, []);
+
   const logout = useCallback(() => {
     localStorage.removeItem(STORAGE_KEY);
     setStored(null);
@@ -64,6 +81,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     user: stored?.user ?? null,
     isAuthenticated: !!stored?.accessToken,
     login,
+    register,
+    verifyEmail,
+    resendVerification,
     logout,
   };
 

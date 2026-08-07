@@ -1,21 +1,9 @@
-import {
-  Body,
-  Controller,
-  Get,
-  HttpCode,
-  HttpStatus,
-  Param,
-  ParseIntPipe,
-  Patch,
-  Post,
-  UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseIntPipe, Patch, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Role, UserDto } from '@workflow-brasal/shared';
 import { AuthenticatedUser, CurrentUser } from '../common/decorators/current-user.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
-import { CreateUserDto } from './dto/create-user.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { User } from './entities/user.entity';
@@ -41,13 +29,6 @@ export class UsersController {
   @Get(':id')
   async findOne(@Param('id', ParseIntPipe) id: number): Promise<UserDto> {
     return toUserDto(await this.usersService.findById(id));
-  }
-
-  @UseGuards(RolesGuard)
-  @Roles(Role.ADMIN)
-  @Post()
-  async create(@Body() dto: CreateUserDto): Promise<UserDto> {
-    return toUserDto(await this.usersService.create(dto));
   }
 
   @UseGuards(RolesGuard)

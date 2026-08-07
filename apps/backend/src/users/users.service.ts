@@ -4,7 +4,6 @@ import { Role } from '@workflow-brasal/shared';
 import * as bcrypt from 'bcryptjs';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
-import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 
 const SALT_ROUNDS = 10;
@@ -30,25 +29,40 @@ export class UsersService {
     return this.usersRepository.findOne({ where: { email } });
   }
 
-  /** Always creates a MEMBER — role escalation only happens through `update`. */
-  createMember(data: { name: string; email: string; passwordHash: string }): Promise<User> {
-    const user = this.usersRepository.create({ ...data, role: Role.MEMBER, isActive: true });
+  findByVerificationToken(token: string): Promise<User | null> {
+    return this.usersRepository.findOne({ where: { verificationToken: token } });
+  }
+
+  /** Always creates a MEMBER, pending e-mail verification — role escalation only happens through
+   * `update`. */
+  createMember(data: {
+    name: string;
+    email: string;
+    passwordHash: string;
+    verificationToken: string;
+    verificationTokenExpiresAt: Date;
+  }): Promise<User> {
+    const user = this.usersRepository.create({
+      ...data,
+      role: Role.MEMBER,
+      isActive: true,
+      isVerified: false,
+    });
     return this.usersRepository.save(user);
   }
 
-  /** Admin-driven creation with an explicit role — used by POST /users. */
-  async create(dto: CreateUserDto): Promise<User> {
-    const existing = await this.findByEmail(dto.email);
-    if (existing) throw new ConflictException('E-mail já cadastrado');
+  async markVerified(id: number): Promise<User> {
+    const user = await this.findById(id);
+    user.isVerified = true;
+    user.verificationToken = null;
+    user.verificationTokenExpiresAt = null;
+    return this.usersRepository.save(user);
+  }
 
-    const passwordHash = await bcrypt.hash(dto.password, SALT_ROUNDS);
-    const user = this.usersRepository.create({
-      name: dto.name,
-      email: dto.email,
-      passwordHash,
-      role: dto.role,
-      isActive: true,
-    });
+  async setVerificationToken(id: number, token: string, expiresAt: Date): Promise<User> {
+    const user = await this.findById(id);
+    user.verificationToken = token;
+    user.verificationTokenExpiresAt = expiresAt;
     return this.usersRepository.save(user);
   }
 

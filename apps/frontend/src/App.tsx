@@ -8,12 +8,16 @@ import { DashboardPage } from './pages/DashboardPage';
 import { KanbanPage } from './pages/KanbanPage';
 import { LoginPage } from './pages/LoginPage';
 import { ProjetosPage } from './pages/ProjetosPage';
+import { RegisterPage } from './pages/RegisterPage';
 import { UsersPage } from './pages/UsersPage';
+import { VerifyEmailPage } from './pages/VerifyEmailPage';
 
 export function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
+      <Route path="/verify-email" element={<VerifyEmailPage />} />
       <Route
         element={
           <RequireAuth>

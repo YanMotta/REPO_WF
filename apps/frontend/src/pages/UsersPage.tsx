@@ -1,18 +1,11 @@
-import { ActionIcon, Badge, Button, Group, Loader, Table, Title, Tooltip } from '@mantine/core';
+import { ActionIcon, Badge, Group, Loader, Table, Title, Tooltip } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { IconEdit, IconKey, IconPlus, IconUserCheck, IconUserOff } from '@tabler/icons-react';
+import { IconEdit, IconKey, IconTrash, IconUserCheck } from '@tabler/icons-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Role, UserDto } from '@workflow-brasal/shared';
 import { useState } from 'react';
 import { ApiError } from '../api/client';
-import {
-  CreateUserInput,
-  UpdateUserInput,
-  createUser,
-  listUsers,
-  resetUserPassword,
-  updateUser,
-} from '../api/users';
+import { UpdateUserInput, listUsers, resetUserPassword, updateUser } from '../api/users';
 import { useAuth } from '../auth/AuthContext';
 import { ResetPasswordModal } from './users/ResetPasswordModal';
 import { UserFormModal } from './users/UserFormModal';
@@ -41,16 +34,6 @@ export function UsersPage() {
       });
   }
 
-  const createMutation = useMutation({
-    mutationFn: (input: CreateUserInput) => createUser(input),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['users'] });
-      setFormModalOpen(false);
-      notifications.show({ color: 'green', message: 'Usuário criado com sucesso' });
-    },
-    onError: handleMutationError('Erro ao criar usuário'),
-  });
-
   const updateMutation = useMutation({
     mutationFn: ({ id, input }: { id: number; input: UpdateUserInput }) => updateUser(id, input),
     onSuccess: () => {
@@ -70,28 +53,21 @@ export function UsersPage() {
     onError: handleMutationError('Erro ao redefinir senha'),
   });
 
-  function openNewUser() {
-    setEditing(null);
-    setFormModalOpen(true);
-  }
-
   function openEditUser(user: UserDto) {
     setEditing(user);
     setFormModalOpen(true);
   }
 
-  function handleFormSubmit(input: CreateUserInput | UpdateUserInput) {
+  function handleFormSubmit(input: UpdateUserInput) {
     if (editing) {
       updateMutation.mutate({ id: editing.id, input });
-    } else {
-      createMutation.mutate(input as CreateUserInput);
     }
   }
 
   function toggleActive(user: UserDto) {
     if (user.isActive) {
       const confirmed = window.confirm(
-        `Desativar o acesso de "${user.name}"? A pessoa não conseguirá mais fazer login até ser reativada.`,
+        `Excluir o usuário "${user.name}"? A pessoa não conseguirá mais fazer login, mas pode ser reativada depois — o histórico de atividades dela é mantido.`,
       );
       if (!confirmed) return;
     }
@@ -102,9 +78,6 @@ export function UsersPage() {
     <>
       <Group justify="space-between" mb="md">
         <Title order={2}>Usuários</Title>
-        <Button leftSection={<IconPlus size={16} />} onClick={openNewUser}>
-          Novo usuário
-        </Button>
       </Group>
 
       {usersQuery.isLoading ? (
@@ -147,14 +120,14 @@ export function UsersPage() {
                           <IconKey size={16} />
                         </ActionIcon>
                       </Tooltip>
-                      <Tooltip label={isSelf ? 'Você não pode alterar seu próprio acesso' : user.isActive ? 'Desativar' : 'Reativar'}>
+                      <Tooltip label={isSelf ? 'Você não pode alterar seu próprio acesso' : user.isActive ? 'Excluir' : 'Reativar'}>
                         <ActionIcon
                           variant="subtle"
                           color={user.isActive ? 'red' : 'green'}
                           disabled={isSelf}
                           onClick={() => toggleActive(user)}
                         >
-                          {user.isActive ? <IconUserOff size={16} /> : <IconUserCheck size={16} />}
+                          {user.isActive ? <IconTrash size={16} /> : <IconUserCheck size={16} />}
                         </ActionIcon>
                       </Tooltip>
                     </Group>
@@ -170,7 +143,7 @@ export function UsersPage() {
         opened={formModalOpen}
         onClose={() => setFormModalOpen(false)}
         onSubmit={handleFormSubmit}
-        editing={editing}
+        user={editing}
       />
 
       <ResetPasswordModal

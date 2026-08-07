@@ -66,6 +66,18 @@ export class NotificationsService {
     return this.logsRepository.save(log);
   }
 
+  /** Account-lifecycle emails (verification, etc.) — not tied to an activity, so no NotificationLog
+   * row is written; that table stays scoped to activity notifications. */
+  async sendRaw(recipientId: number, email: string, subject: string, body: string): Promise<void> {
+    const { sender } = this.resolveChannel();
+    try {
+      await sender.send({ recipientId, recipientEmail: email, subject, body });
+    } catch (err) {
+      this.logger.error(`Account email send failed (recipientId=${recipientId}): ${err}`);
+      throw err;
+    }
+  }
+
   /** Enforces "notify once per activity per recipient" for events like APPROACHING_DEADLINE. */
   async hasAlreadyNotified(
     activityId: number,

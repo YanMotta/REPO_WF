@@ -1,7 +1,10 @@
-import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { UserDto } from '@workflow-brasal/shared';
 import * as bcrypt from 'bcryptjs';
+import * as crypto from 'crypto';
+import { NotificationsService } from '../notifications/notifications.service';
 import { User } from '../users/entities/user.entity';
 import { UsersService } from '../users/users.service';
 import { LoginDto } from './dto/login.dto';
@@ -14,24 +17,47 @@ function toUserDto(user: User): UserDto {
   return { id, name, email, role, isActive };
 }
 
+/** Strips control characters (defense against header injection if this ever lands in an
+ * e-mail subject) and caps whitespace. */
+function sanitizeName(name: string): string {
+  // eslint-disable-next-line no-control-regex
+  return name.replace(/[\x00-\x1F\x7F]/g, '').trim();
+}
+
+function generateVerificationToken(): string {
+  return crypto.randomBytes(32).toString('hex');
+}
+
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
+    private readonly notificationsService: NotificationsService,
+    private readonly configService: ConfigService,
   ) {}
 
-  async register(dto: RegisterDto): Promise<{ accessToken: string; user: UserDto }> {
+  async register(dto: RegisterDto): Promise<{ message: string }> {
     const existing = await this.usersService.findByEmail(dto.email);
     if (existing) throw new ConflictException('E-mail já cadastrado');
 
     const passwordHash = await bcrypt.hash(dto.password, SALT_ROUNDS);
+    const verificationToken = generateVerificationToken();
+    const verificationTokenExpiresAt = this.buildTokenExpiry();
+
     const user = await this.usersService.createMember({
-      name: dto.name,
+      name: sanitizeName(dto.name),
       email: dto.email,
       passwordHash,
+      verificationToken,
+      verificationTokenExpiresAt,
     });
-    return this.buildAuthResponse(user);
+
+    await this.sendVerificationEmail(user, verificationToken);
+
+    return { message: 'Cadastro realizado! Verifique seu e-mail para ativar sua conta.' };
   }
 
   async login(dto: LoginDto): Promise<{ accessToken: string; user: UserDto }> {
@@ -41,7 +67,67 @@ export class AuthService {
     const passwordMatches = await bcrypt.compare(dto.password, user.passwordHash);
     if (!passwordMatches) throw new UnauthorizedException('Credenciais inválidas');
 
+    // Only reachable once the password has already been proven correct, so this never leaks
+    // account-verification state to someone probing e-mails without a valid password.
+    if (!user.isVerified) {
+      throw new UnauthorizedException('E-mail ainda não verificado. Verifique sua caixa de entrada.');
+    }
+
     return this.buildAuthResponse(user);
+  }
+
+  async verifyEmail(token: string): Promise<{ accessToken: string; user: UserDto }> {
+    const user = await this.usersService.findByVerificationToken(token);
+    if (!user) throw new BadRequestException('Link de verificação inválido.');
+
+    if (!user.verificationTokenExpiresAt || user.verificationTokenExpiresAt < new Date()) {
+      throw new BadRequestException('Link de verificação expirado. Solicite um novo.');
+    }
+
+    const verified = await this.usersService.markVerified(user.id);
+    return this.buildAuthResponse(verified);
+  }
+
+  /** Always responds with the same generic message regardless of whether the e-mail exists or is
+   * already verified, to avoid account enumeration. */
+  async resendVerification(email: string): Promise<{ message: string }> {
+    const message = 'Se o e-mail estiver cadastrado e pendente de verificação, um novo link foi enviado.';
+
+    const user = await this.usersService.findByEmail(email);
+    if (!user || user.isVerified) return { message };
+
+    const verificationToken = generateVerificationToken();
+    const updated = await this.usersService.setVerificationToken(
+      user.id,
+      verificationToken,
+      this.buildTokenExpiry(),
+    );
+    await this.sendVerificationEmail(updated, verificationToken);
+
+    return { message };
+  }
+
+  private buildTokenExpiry(): Date {
+    const minutes = this.configService.get<number>('EMAIL_VERIFICATION_TTL_MINUTES', 30);
+    return new Date(Date.now() + minutes * 60 * 1000);
+  }
+
+  private async sendVerificationEmail(user: User, token: string): Promise<void> {
+    const frontendUrl = this.configService.get<string>('FRONTEND_URL', 'http://localhost:5173');
+    const link = `${frontendUrl}/verify-email?token=${token}`;
+
+    try {
+      await this.notificationsService.sendRaw(
+        user.id,
+        user.email,
+        'Confirme seu cadastro — Workflow Brasal',
+        `Olá, ${user.name}!\n\nConfirme seu cadastro clicando no link abaixo (válido por ${this.configService.get<number>('EMAIL_VERIFICATION_TTL_MINUTES', 30)} minutos):\n\n${link}\n\nSe você não solicitou este cadastro, ignore este e-mail.`,
+      );
+    } catch (err) {
+      // Registration/resend still succeeds even if the e-mail send fails transiently — the
+      // resend endpoint is the recovery path.
+      this.logger.error(`Failed to send verification e-mail to user ${user.id}: ${err}`);
+    }
   }
 
   private buildAuthResponse(user: User): { accessToken: string; user: UserDto } {
