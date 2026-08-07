@@ -36,7 +36,7 @@ async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> 
     },
   });
 
-  if (res.status === 401) {
+  if (res.status === 401 && token) {
     localStorage.removeItem(STORAGE_KEY);
     window.dispatchEvent(new Event('auth:unauthorized'));
     throw new ApiError(401, 'Sessão expirada');

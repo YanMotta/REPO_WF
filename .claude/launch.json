@@ -6,6 +6,12 @@
       "runtimeExecutable": "C:\\Users\\yoliveira\\AppData\\Roaming\\npm\\pnpm.cmd",
       "runtimeArgs": ["--filter", "@workflow-brasal/frontend", "dev"],
       "port": 5173
+    },
+    {
+      "name": "backend",
+      "runtimeExecutable": "C:\\Users\\yoliveira\\AppData\\Roaming\\npm\\pnpm.cmd",
+      "runtimeArgs": ["--filter", "@workflow-brasal/backend", "start:dev"],
+      "port": 3000
     }
   ]
 }
