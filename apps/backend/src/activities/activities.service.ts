@@ -288,6 +288,11 @@ export class ActivitiesService {
     return this.dependenciesRepository.find({ where: { activityId } });
   }
 
+  /** All dependency edges, unfiltered — backs the Gantt view's bulk connector rendering. */
+  findAllDependencies(): Promise<ActivityDependency[]> {
+    return this.dependenciesRepository.find();
+  }
+
   /** Predecessor activities not yet DONE — used to gate manual transition to IN_PROGRESS. */
   async getBlockedBy(activityId: number): Promise<Activity[]> {
     const deps = await this.getDependencies(activityId);

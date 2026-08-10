@@ -5,6 +5,7 @@ import { AppLayout } from './layout/AppLayout';
 import { AtividadesPage } from './pages/AtividadesPage';
 import { ChecklistPage } from './pages/ChecklistPage';
 import { DashboardPage } from './pages/DashboardPage';
+import { GanttPage } from './pages/GanttPage';
 import { KanbanPage } from './pages/KanbanPage';
 import { LoginPage } from './pages/LoginPage';
 import { ProjetosPage } from './pages/ProjetosPage';
@@ -49,6 +50,14 @@ export function App() {
           element={
             <RequireAdmin>
               <ProjetosPage />
+            </RequireAdmin>
+          }
+        />
+        <Route
+          path="/gantt"
+          element={
+            <RequireAdmin>
+              <GanttPage />
             </RequireAdmin>
           }
         />

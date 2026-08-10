@@ -42,6 +42,13 @@ export class ActivitiesController {
     return this.activitiesService.findAll(filter);
   }
 
+  /** All dependency edges, unfiltered — backs the Gantt view's connector rendering.
+   * Must stay declared before `:id` below, or Nest matches "dependencies" as the id param. */
+  @Get('dependencies')
+  findAllDependencies() {
+    return this.activitiesService.findAllDependencies();
+  }
+
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.activitiesService.findById(id);

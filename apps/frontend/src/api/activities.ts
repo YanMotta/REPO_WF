@@ -53,6 +53,11 @@ export function getActivityDependencies(id: number): Promise<ActivityDependencyD
   return api.get<ActivityDependencyDto[]>(`/activities/${id}/dependencies`);
 }
 
+/** All dependency edges across every activity — backs the Gantt view's connector rendering. */
+export function listAllDependencies(): Promise<ActivityDependencyDto[]> {
+  return api.get<ActivityDependencyDto[]>('/activities/dependencies');
+}
+
 export function changeActivityStatus(id: number, status: string): Promise<ActivityDto> {
   return api.patch<ActivityDto>(`/activities/${id}/status`, { status });
 }

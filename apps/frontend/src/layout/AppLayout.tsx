@@ -6,6 +6,7 @@ import {
   IconLayoutDashboard,
   IconLayoutKanban,
   IconLogout,
+  IconTimeline,
   IconUsers,
 } from '@tabler/icons-react';
 import { Role } from '@workflow-brasal/shared';
@@ -18,6 +19,7 @@ const NAV_ITEMS = [
   { label: 'Dashboard', path: '/dashboard', icon: IconLayoutDashboard, adminOnly: true },
   { label: 'Quadro', path: '/quadro', icon: IconLayoutKanban, adminOnly: false },
   { label: 'Cronogramas', path: '/projetos', icon: IconFolders, adminOnly: true },
+  { label: 'Gantt', path: '/gantt', icon: IconTimeline, adminOnly: true },
   { label: 'Checklist', path: '/modelos-fechamento', icon: IconChecklist, adminOnly: true },
   { label: 'Usuários', path: '/usuarios', icon: IconUsers, adminOnly: true },
 ];
