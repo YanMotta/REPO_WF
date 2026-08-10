@@ -8,10 +8,6 @@ import { useNavigate } from 'react-router-dom';
 import { deleteClosure, listActivities } from '../api/activities';
 import { ApiError } from '../api/client';
 
-const now = new Date();
-const CURRENT_MONTH = now.getMonth() + 1;
-const CURRENT_YEAR = now.getFullYear();
-
 interface MonthCard {
   month: number;
   year: number;
@@ -42,13 +38,6 @@ export function ProjetosPage() {
     const grouped = new Map<string, MonthCard>();
     (activitiesQuery.data ?? []).forEach((activity) => {
       if (activity.dueDateRuleMonth == null || activity.dueDateRuleYear == null) return;
-      // Never show months beyond the current one — closure generation itself never runs ahead.
-      if (
-        activity.dueDateRuleYear > CURRENT_YEAR ||
-        (activity.dueDateRuleYear === CURRENT_YEAR && activity.dueDateRuleMonth > CURRENT_MONTH)
-      ) {
-        return;
-      }
       const key = `${activity.dueDateRuleYear}-${activity.dueDateRuleMonth}`;
       const entry = grouped.get(key) ?? {
         month: activity.dueDateRuleMonth,
@@ -75,7 +64,7 @@ export function ProjetosPage() {
   return (
     <>
       <Title order={2} mb="md">
-        Projetos
+        Lista de Cronogramas
       </Title>
 
       {activitiesQuery.isLoading ? (
