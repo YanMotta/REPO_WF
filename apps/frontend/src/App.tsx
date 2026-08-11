@@ -5,11 +5,13 @@ import { AppLayout } from './layout/AppLayout';
 import { AtividadesPage } from './pages/AtividadesPage';
 import { ChecklistPage } from './pages/ChecklistPage';
 import { DashboardPage } from './pages/DashboardPage';
+import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
 import { GanttPage } from './pages/GanttPage';
 import { KanbanPage } from './pages/KanbanPage';
 import { LoginPage } from './pages/LoginPage';
 import { ProjetosPage } from './pages/ProjetosPage';
 import { RegisterPage } from './pages/RegisterPage';
+import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { UsersPage } from './pages/UsersPage';
 import { VerifyEmailPage } from './pages/VerifyEmailPage';
 
@@ -19,6 +21,8 @@ export function App() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/verify-email" element={<VerifyEmailPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route
         element={
           <RequireAuth>

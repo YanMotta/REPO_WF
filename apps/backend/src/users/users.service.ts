@@ -33,6 +33,17 @@ export class UsersService {
     return this.usersRepository.findOne({ where: { verificationToken: token } });
   }
 
+  findByPasswordResetToken(token: string): Promise<User | null> {
+    return this.usersRepository.findOne({ where: { passwordResetToken: token } });
+  }
+
+  async setPasswordResetToken(id: number, token: string, expiresAt: Date): Promise<User> {
+    const user = await this.findById(id);
+    user.passwordResetToken = token;
+    user.passwordResetTokenExpiresAt = expiresAt;
+    return this.usersRepository.save(user);
+  }
+
   /** Always creates a MEMBER, pending e-mail verification — role escalation only happens through
    * `update`. */
   createMember(data: {
@@ -83,9 +94,13 @@ export class UsersService {
     return this.usersRepository.save(user);
   }
 
+  /** Sets a new password and invalidates any pending reset token in the same write — used
+   * exclusively by the self-service forgot-password flow now (AuthService.resetPassword). */
   async resetPassword(id: number, newPassword: string): Promise<void> {
     const user = await this.findById(id);
     user.passwordHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
+    user.passwordResetToken = null;
+    user.passwordResetTokenExpiresAt = null;
     await this.usersRepository.save(user);
   }
 }

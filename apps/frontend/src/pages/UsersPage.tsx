@@ -1,13 +1,12 @@
 import { ActionIcon, Badge, Group, Loader, Table, Title, Tooltip } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { IconEdit, IconKey, IconTrash, IconUserCheck } from '@tabler/icons-react';
+import { IconEdit, IconTrash, IconUserCheck } from '@tabler/icons-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Role, UserDto } from '@workflow-brasal/shared';
 import { useState } from 'react';
 import { ApiError } from '../api/client';
-import { UpdateUserInput, listUsers, resetUserPassword, updateUser } from '../api/users';
+import { UpdateUserInput, listUsers, updateUser } from '../api/users';
 import { useAuth } from '../auth/AuthContext';
-import { ResetPasswordModal } from './users/ResetPasswordModal';
 import { UserFormModal } from './users/UserFormModal';
 
 const ROLE_LABEL: Record<Role, string> = {
@@ -21,7 +20,6 @@ export function UsersPage() {
   const { user: currentUser } = useAuth();
   const [editing, setEditing] = useState<UserDto | null>(null);
   const [formModalOpen, setFormModalOpen] = useState(false);
-  const [resettingPasswordFor, setResettingPasswordFor] = useState<UserDto | null>(null);
 
   const usersQuery = useQuery({ queryKey: ['users'], queryFn: listUsers });
 
@@ -42,15 +40,6 @@ export function UsersPage() {
       notifications.show({ color: 'green', message: 'Usuário atualizado com sucesso' });
     },
     onError: handleMutationError('Erro ao atualizar usuário'),
-  });
-
-  const resetPasswordMutation = useMutation({
-    mutationFn: ({ id, newPassword }: { id: number; newPassword: string }) => resetUserPassword(id, newPassword),
-    onSuccess: () => {
-      setResettingPasswordFor(null);
-      notifications.show({ color: 'green', message: 'Senha redefinida com sucesso' });
-    },
-    onError: handleMutationError('Erro ao redefinir senha'),
   });
 
   function openEditUser(user: UserDto) {
@@ -83,6 +72,7 @@ export function UsersPage() {
       {usersQuery.isLoading ? (
         <Loader />
       ) : (
+        <Table.ScrollContainer minWidth={600}>
         <Table withTableBorder striped>
           <Table.Thead>
             <Table.Tr>
@@ -115,11 +105,6 @@ export function UsersPage() {
                           <IconEdit size={16} />
                         </ActionIcon>
                       </Tooltip>
-                      <Tooltip label="Redefinir senha">
-                        <ActionIcon variant="subtle" onClick={() => setResettingPasswordFor(user)}>
-                          <IconKey size={16} />
-                        </ActionIcon>
-                      </Tooltip>
                       <Tooltip label={isSelf ? 'Você não pode alterar seu próprio acesso' : user.isActive ? 'Excluir' : 'Reativar'}>
                         <ActionIcon
                           variant="subtle"
@@ -137,6 +122,7 @@ export function UsersPage() {
             })}
           </Table.Tbody>
         </Table>
+        </Table.ScrollContainer>
       )}
 
       <UserFormModal
@@ -144,17 +130,6 @@ export function UsersPage() {
         onClose={() => setFormModalOpen(false)}
         onSubmit={handleFormSubmit}
         user={editing}
-      />
-
-      <ResetPasswordModal
-        opened={resettingPasswordFor !== null}
-        onClose={() => setResettingPasswordFor(null)}
-        onSubmit={(newPassword) => {
-          if (resettingPasswordFor) {
-            resetPasswordMutation.mutate({ id: resettingPasswordFor.id, newPassword });
-          }
-        }}
-        user={resettingPasswordFor}
       />
     </>
   );

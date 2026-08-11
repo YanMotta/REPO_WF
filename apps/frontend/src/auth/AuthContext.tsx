@@ -24,6 +24,8 @@ interface AuthContextValue {
   register: (name: string, email: string, password: string) => Promise<{ message: string }>;
   verifyEmail: (token: string) => Promise<void>;
   resendVerification: (email: string) => Promise<{ message: string }>;
+  forgotPassword: (email: string) => Promise<{ message: string }>;
+  resetPassword: (token: string, newPassword: string) => Promise<{ message: string }>;
   logout: () => void;
 }
 
@@ -72,6 +74,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return api.post<{ message: string }>('/auth/resend-verification', { email });
   }, []);
 
+  const forgotPassword = useCallback(async (email: string) => {
+    return api.post<{ message: string }>('/auth/forgot-password', { email });
+  }, []);
+
+  const resetPassword = useCallback(async (token: string, newPassword: string) => {
+    return api.post<{ message: string }>('/auth/reset-password', { token, newPassword });
+  }, []);
+
   const logout = useCallback(() => {
     localStorage.removeItem(STORAGE_KEY);
     setStored(null);
@@ -84,6 +94,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     register,
     verifyEmail,
     resendVerification,
+    forgotPassword,
+    resetPassword,
     logout,
   };
 

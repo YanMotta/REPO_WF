@@ -15,7 +15,3 @@ export function listUsers(): Promise<UserDto[]> {
 export function updateUser(id: number, input: UpdateUserInput): Promise<UserDto> {
   return api.patch<UserDto>(`/users/${id}`, input);
 }
-
-export function resetUserPassword(id: number, newPassword: string): Promise<void> {
-  return api.patch<void>(`/users/${id}/password`, { newPassword });
-}

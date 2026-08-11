@@ -28,6 +28,10 @@ function generateVerificationToken(): string {
   return crypto.randomBytes(32).toString('hex');
 }
 
+function generatePasswordResetToken(): string {
+  return crypto.randomBytes(32).toString('hex');
+}
+
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
@@ -105,6 +109,64 @@ export class AuthService {
     await this.sendVerificationEmail(updated, verificationToken);
 
     return { message };
+  }
+
+  /** Always responds with the same generic message regardless of whether the e-mail exists, is
+   * inactive, or is fine — mirrors resendVerification's anti-enumeration shape. */
+  async forgotPassword(email: string): Promise<{ message: string }> {
+    const message = 'Se o e-mail estiver cadastrado, enviaremos um link para redefinir a senha.';
+
+    const user = await this.usersService.findByEmail(email);
+    if (!user || !user.isActive) return { message };
+
+    const passwordResetToken = generatePasswordResetToken();
+    const updated = await this.usersService.setPasswordResetToken(
+      user.id,
+      passwordResetToken,
+      this.buildPasswordResetTokenExpiry(),
+    );
+    await this.sendPasswordResetEmail(updated, passwordResetToken);
+
+    return { message };
+  }
+
+  /** No auto-login on success — unlike verifyEmail, changing a credential is sensitive enough
+   * that the user should log in explicitly afterward with the new password. */
+  async resetPassword(token: string, newPassword: string): Promise<{ message: string }> {
+    const user = await this.usersService.findByPasswordResetToken(token);
+    if (!user) throw new BadRequestException('Link de redefinição de senha inválido.');
+
+    if (!user.passwordResetTokenExpiresAt || user.passwordResetTokenExpiresAt < new Date()) {
+      throw new BadRequestException('Link de redefinição de senha expirado. Solicite um novo.');
+    }
+    // Defensive re-check for the race where an admin deactivates the account between the reset
+    // e-mail being sent and the link being used — same generic wording, no distinct signal.
+    if (!user.isActive) throw new BadRequestException('Link de redefinição de senha inválido.');
+
+    await this.usersService.resetPassword(user.id, newPassword);
+    return { message: 'Senha redefinida com sucesso. Você já pode fazer login com a nova senha.' };
+  }
+
+  private buildPasswordResetTokenExpiry(): Date {
+    const minutes = this.configService.get<number>('PASSWORD_RESET_TTL_MINUTES', 30);
+    return new Date(Date.now() + minutes * 60 * 1000);
+  }
+
+  private async sendPasswordResetEmail(user: User, token: string): Promise<void> {
+    const frontendUrl = this.configService.get<string>('FRONTEND_URL', 'http://localhost:5173');
+    const minutes = this.configService.get<number>('PASSWORD_RESET_TTL_MINUTES', 30);
+    const link = `${frontendUrl}/reset-password?token=${token}`;
+
+    try {
+      await this.notificationsService.sendRaw(
+        user.id,
+        user.email,
+        'Redefinição de senha — Workflow Brasal',
+        `Olá, ${user.name}!\n\nRecebemos uma solicitação para redefinir a senha da sua conta. Clique no link abaixo para criar uma nova senha (válido por ${minutes} minutos):\n\n${link}\n\nSe você não solicitou esta redefinição, ignore este e-mail — sua senha atual continua válida.`,
+      );
+    } catch (err) {
+      this.logger.error(`Failed to send password reset e-mail to user ${user.id}: ${err}`);
+    }
   }
 
   private buildTokenExpiry(): Date {

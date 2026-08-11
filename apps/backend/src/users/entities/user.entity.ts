@@ -33,4 +33,13 @@ export class User {
 
   @Column({ type: 'datetime', nullable: true })
   verificationTokenExpiresAt: Date | null;
+
+  /** Additive & nullable, unlike `isVerified` — every existing row correctly starts as "no
+   * password reset in progress" with no backfill needed. */
+  @Index()
+  @Column({ type: 'varchar', nullable: true })
+  passwordResetToken: string | null;
+
+  @Column({ type: 'datetime', nullable: true })
+  passwordResetTokenExpiresAt: Date | null;
 }

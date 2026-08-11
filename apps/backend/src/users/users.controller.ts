@@ -1,10 +1,9 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseIntPipe, Patch, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseIntPipe, Patch, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Role, UserDto } from '@workflow-brasal/shared';
 import { AuthenticatedUser, CurrentUser } from '../common/decorators/current-user.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
-import { ResetPasswordDto } from './dto/reset-password.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { User } from './entities/user.entity';
 import { UsersService } from './users.service';
@@ -40,16 +39,5 @@ export class UsersController {
     @CurrentUser() currentUser: AuthenticatedUser,
   ): Promise<UserDto> {
     return toUserDto(await this.usersService.update(id, dto, currentUser.id));
-  }
-
-  @UseGuards(RolesGuard)
-  @Roles(Role.ADMIN)
-  @Patch(':id/password')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  async resetPassword(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() dto: ResetPasswordDto,
-  ): Promise<void> {
-    await this.usersService.resetPassword(id, dto.newPassword);
   }
 }
