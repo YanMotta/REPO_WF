@@ -1,0 +1,11 @@
+node_modules
+**/node_modules
+**/dist
+**/.vite
+.git
+apps/backend/data
+*.sqlite
+*.sqlite3
+.env
+.env.*
+!.env.example
