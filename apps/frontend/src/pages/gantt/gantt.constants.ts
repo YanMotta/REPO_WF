@@ -21,6 +21,7 @@ export const ZOOM_PX_PER_DAY: Record<ZoomLevel, number> = {
 export const ROW_HEIGHT = 32;
 export const PROJECT_HEADER_HEIGHT = 40;
 export const LABEL_COLUMN_WIDTH = 280;
+export const LABEL_COLUMN_WIDTH_MOBILE = 150;
 export const MIN_BAR_WIDTH_PX = 8;
 /** Activities with no startDate default to a short lead-in window ending at the deadline —
  * just enough to render a visible, position-meaningful bar (same convention the app has used

@@ -1,4 +1,4 @@
-import { ActionIcon, Card, Group, Loader, Text, Title, UnstyledButton } from '@mantine/core';
+import { ActionIcon, Card, Group, Loader, SimpleGrid, Text, Title, UnstyledButton } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { IconTrash } from '@tabler/icons-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -70,9 +70,9 @@ export function ProjetosPage() {
       {activitiesQuery.isLoading ? (
         <Loader />
       ) : (
-        <Group gap="md">
+        <SimpleGrid cols={{ base: 2, xs: 3, sm: 3, md: 4 }} spacing="md">
           {monthCards.map((card) => (
-            <Card key={`${card.year}-${card.month}`} withBorder w={200} h={200} padding="md" pos="relative">
+            <Card key={`${card.year}-${card.month}`} withBorder h={200} padding="md" pos="relative">
               <ActionIcon
                 variant="subtle"
                 color="red"
@@ -107,7 +107,7 @@ export function ProjetosPage() {
               </UnstyledButton>
             </Card>
           ))}
-        </Group>
+        </SimpleGrid>
       )}
     </>
   );

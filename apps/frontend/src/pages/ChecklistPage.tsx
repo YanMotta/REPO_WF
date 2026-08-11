@@ -173,6 +173,7 @@ export function ChecklistPage() {
       {isLoading ? (
         <Loader />
       ) : (
+        <Table.ScrollContainer minWidth={600}>
         <Table withTableBorder striped>
           <Table.Thead>
             <Table.Tr>
@@ -211,6 +212,7 @@ export function ChecklistPage() {
             ))}
           </Table.Tbody>
         </Table>
+        </Table.ScrollContainer>
       )}
 
       <TemplateFormModal

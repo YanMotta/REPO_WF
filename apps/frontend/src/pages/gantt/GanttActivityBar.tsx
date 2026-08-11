@@ -1,4 +1,5 @@
 import { Text, Tooltip } from '@mantine/core';
+import { useMediaQuery } from '@mantine/hooks';
 import { IconCheck, IconLock } from '@tabler/icons-react';
 import { ActivityDto } from '@workflow-brasal/shared';
 import { PRIORITY_COLOR, STATUS_COLOR, STATUS_LABEL } from '../../constants/status';
@@ -22,6 +23,7 @@ export function GanttActivityBar({
   isBlocked: boolean;
   onClick: () => void;
 }) {
+  const isMobile = useMediaQuery('(max-width: 48em)');
   const isDone = activity.status === 'DONE';
   const progress = Math.min(Math.max(activity.progressPercent, 0), 100);
   const color = STATUS_COLOR[activity.status];
@@ -39,8 +41,8 @@ export function GanttActivityBar({
         position: 'absolute',
         left,
         width,
-        top: 4,
-        bottom: 4,
+        top: isMobile ? 2 : 4,
+        bottom: isMobile ? 2 : 4,
         borderRadius: 4,
         overflow: 'hidden',
         cursor: 'pointer',

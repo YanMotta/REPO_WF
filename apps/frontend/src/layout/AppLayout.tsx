@@ -1,4 +1,5 @@
-import { AppShell, NavLink, Text } from '@mantine/core';
+import { AppShell, Box, Burger, Group, NavLink, Text } from '@mantine/core';
+import { useDisclosure } from '@mantine/hooks';
 import {
   IconCalendarStats,
   IconChecklist,
@@ -30,16 +31,35 @@ export function AppLayout() {
   const { user, logout } = useAuth();
   const isAdmin = user?.role === Role.ADMIN;
   const visibleNavItems = NAV_ITEMS.filter((item) => isAdmin || !item.adminOnly);
+  const [mobileOpened, { toggle: toggleMobile, close: closeMobile }] = useDisclosure(false);
 
   function handleLogout() {
     logout();
     navigate('/login', { replace: true });
   }
 
+  function goTo(path: string) {
+    navigate(path);
+    closeMobile();
+  }
+
   return (
-    <AppShell navbar={{ width: 240, breakpoint: 'sm' }} padding="md">
+    <AppShell
+      header={{ height: 56 }}
+      navbar={{ width: 240, breakpoint: 'sm', collapsed: { mobile: !mobileOpened } }}
+      padding="md"
+    >
+      <AppShell.Header hiddenFrom="sm">
+        <Group h="100%" px="md" justify="space-between">
+          <BrasalLogo />
+          <Burger opened={mobileOpened} onClick={toggleMobile} size="sm" />
+        </Group>
+      </AppShell.Header>
+
       <AppShell.Navbar p="md" style={{ display: 'flex', flexDirection: 'column' }}>
-        <BrasalLogo />
+        <Box visibleFrom="sm">
+          <BrasalLogo />
+        </Box>
         <div style={{ marginTop: 24, flex: 1 }}>
           {visibleNavItems.map((item) => (
             <NavLink
@@ -47,7 +67,7 @@ export function AppLayout() {
               label={item.label}
               leftSection={<item.icon size={18} />}
               active={location.pathname.startsWith(item.path)}
-              onClick={() => navigate(item.path)}
+              onClick={() => goTo(item.path)}
               variant="filled"
               style={{ borderRadius: 8, marginBottom: 4 }}
             />

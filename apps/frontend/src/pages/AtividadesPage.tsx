@@ -100,20 +100,21 @@ export function AtividadesPage() {
           value={responsibleFilter}
           onChange={(value) => setResponsibleFilter(value ?? ALL_RESPONSIBLE)}
           allowDeselect={false}
-          w={220}
+          w={{ base: '100%', sm: 220 }}
         />
         <TextInput
           label="Número"
           placeholder="Ex: 3"
           value={numberFilter}
           onChange={(event) => setNumberFilter(event.currentTarget.value.replace(/\D/g, ''))}
-          w={120}
+          w={{ base: '100%', sm: 120 }}
         />
       </Group>
 
       {isLoading ? (
         <Loader />
       ) : (
+        <Table.ScrollContainer minWidth={700}>
         <Table striped highlightOnHover withTableBorder>
           <Table.Thead>
             <Table.Tr>
@@ -174,6 +175,7 @@ export function AtividadesPage() {
             ))}
           </Table.Tbody>
         </Table>
+        </Table.ScrollContainer>
       )}
 
       <ActivityDetailsDrawer

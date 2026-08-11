@@ -67,7 +67,7 @@ export function VerifyEmailPage() {
 
   return (
     <Center h="100vh" bg="var(--mantine-color-body)">
-      <Paper withBorder shadow="md" p={30} radius="md" w={420}>
+      <Paper withBorder shadow="md" p={{ base: 20, sm: 30 }} radius="md" w={{ base: '92%', sm: 420 }}>
         <Stack align="center" mb="lg">
           <BrasalLogo />
         </Stack>

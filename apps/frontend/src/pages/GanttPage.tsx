@@ -1,4 +1,5 @@
 import { Alert, Center, Group, Loader, Paper, Stack, Text, Title } from '@mantine/core';
+import { useMediaQuery } from '@mantine/hooks';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import { ActivityDto, ActivityStatus, ProjectDto } from '@workflow-brasal/shared';
@@ -12,7 +13,15 @@ import { GanttDependencyOverlay } from './gantt/GanttDependencyOverlay';
 import { GanttProjectGroup } from './gantt/GanttProjectGroup';
 import { GanttTimelineHeader } from './gantt/GanttTimelineHeader';
 import { GanttZoomControl } from './gantt/GanttZoomControl';
-import { DEFAULT_ZOOM, LABEL_COLUMN_WIDTH, PROJECT_HEADER_HEIGHT, ROW_HEIGHT, ZOOM_PX_PER_DAY, ZoomLevel } from './gantt/gantt.constants';
+import {
+  DEFAULT_ZOOM,
+  LABEL_COLUMN_WIDTH,
+  LABEL_COLUMN_WIDTH_MOBILE,
+  PROJECT_HEADER_HEIGHT,
+  ROW_HEIGHT,
+  ZOOM_PX_PER_DAY,
+  ZoomLevel,
+} from './gantt/gantt.constants';
 import {
   BarGeometry,
   computeBarGeometry,
@@ -43,6 +52,8 @@ export function GanttPage() {
   const [filters, setFilters] = useState<GanttFilters>(EMPTY_GANTT_FILTERS);
   const [collapsedProjectIds, setCollapsedProjectIds] = useState<Set<number>>(new Set());
   const [selectedActivity, setSelectedActivity] = useState<ActivityDto | null>(null);
+  const isMobile = useMediaQuery('(max-width: 48em)');
+  const labelColumnWidth = isMobile ? LABEL_COLUMN_WIDTH_MOBILE : LABEL_COLUMN_WIDTH;
 
   const activitiesQuery = useQuery({ queryKey: ['activities'], queryFn: () => listActivities() });
   const projectsQuery = useQuery({ queryKey: ['projects'], queryFn: listProjects });
@@ -234,11 +245,11 @@ export function GanttPage() {
       ) : (
         <Paper withBorder radius="md" style={{ overflow: 'hidden' }}>
           <div style={{ overflowX: 'auto' }}>
-            <div style={{ position: 'relative', width: LABEL_COLUMN_WIDTH + trackWidth }}>
+            <div style={{ position: 'relative', width: labelColumnWidth + trackWidth }}>
               <div style={{ display: 'flex', position: 'sticky', top: 0, zIndex: 4, background: 'var(--mantine-color-body)' }}>
                 <div
                   style={{
-                    width: LABEL_COLUMN_WIDTH,
+                    width: labelColumnWidth,
                     flexShrink: 0,
                     position: 'sticky',
                     left: 0,
@@ -255,7 +266,7 @@ export function GanttPage() {
                   style={{
                     position: 'absolute',
                     top: 0,
-                    left: LABEL_COLUMN_WIDTH,
+                    left: labelColumnWidth,
                     width: trackWidth,
                     height: totalBodyHeight,
                     pointerEvents: 'none',
@@ -287,6 +298,7 @@ export function GanttPage() {
                     blockedActivityIds={blockedActivityIds}
                     geometryByActivityId={geometryByActivityId}
                     trackWidth={trackWidth}
+                    labelColumnWidth={labelColumnWidth}
                     onSelectActivity={setSelectedActivity}
                   />
                 ))}

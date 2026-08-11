@@ -1,0 +1,8 @@
+/* Safety net against unwanted horizontal scroll escaping any of the app's scroll-controlled
+ * containers (tables, Kanban columns, the Gantt timeline) — those manage their own overflow-x,
+ * this just guarantees the page body itself never does. */
+html,
+body {
+  overflow-x: hidden;
+  max-width: 100%;
+}

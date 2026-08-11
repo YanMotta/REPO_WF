@@ -4,15 +4,8 @@ import { FormEvent, useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { ApiError } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
+import { PASSWORD_RULES } from '../auth/passwordRules';
 import { BrasalLogo } from '../components/BrasalLogo';
-
-const PASSWORD_RULES = [
-  { label: 'Pelo menos 8 caracteres', test: (v: string) => v.length >= 8 },
-  { label: 'Uma letra maiúscula', test: (v: string) => /[A-Z]/.test(v) },
-  { label: 'Uma letra minúscula', test: (v: string) => /[a-z]/.test(v) },
-  { label: 'Um número', test: (v: string) => /\d/.test(v) },
-  { label: 'Um caractere especial (@, #, $...)', test: (v: string) => /[^A-Za-z0-9\s]/.test(v) },
-];
 
 export function RegisterPage() {
   const { register, resendVerification, isAuthenticated } = useAuth();
@@ -71,7 +64,7 @@ export function RegisterPage() {
   if (registeredEmail) {
     return (
       <Center h="100vh" bg="var(--mantine-color-body)">
-        <Paper withBorder shadow="md" p={30} radius="md" w={420}>
+        <Paper withBorder shadow="md" p={{ base: 20, sm: 30 }} radius="md" w={{ base: '92%', sm: 420 }}>
           <Stack align="center" mb="lg">
             <BrasalLogo />
           </Stack>

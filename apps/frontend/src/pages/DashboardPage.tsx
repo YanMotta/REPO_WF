@@ -176,28 +176,30 @@ export function DashboardPage() {
             <Text fw={600} mb="sm">
               Produtividade por responsável
             </Text>
-            <Table>
-              <Table.Thead>
-                <Table.Tr>
-                  <Table.Th>Responsável</Table.Th>
-                  <Table.Th>Total</Table.Th>
-                  <Table.Th>Concluídas</Table.Th>
-                  <Table.Th>% concluído</Table.Th>
-                  <Table.Th>Horas excedentes</Table.Th>
-                </Table.Tr>
-              </Table.Thead>
-              <Table.Tbody>
-                {stats.byResponsible.map((row) => (
-                  <Table.Tr key={row.responsibleId}>
-                    <Table.Td>{row.name}</Table.Td>
-                    <Table.Td>{row.total}</Table.Td>
-                    <Table.Td>{row.done}</Table.Td>
-                    <Table.Td>{row.completionRate.toFixed(0)}%</Table.Td>
-                    <Table.Td>{row.exceededHours.toFixed(1)}</Table.Td>
+            <Table.ScrollContainer minWidth={500}>
+              <Table>
+                <Table.Thead>
+                  <Table.Tr>
+                    <Table.Th>Responsável</Table.Th>
+                    <Table.Th>Total</Table.Th>
+                    <Table.Th>Concluídas</Table.Th>
+                    <Table.Th>% concluído</Table.Th>
+                    <Table.Th>Horas excedentes</Table.Th>
                   </Table.Tr>
-                ))}
-              </Table.Tbody>
-            </Table>
+                </Table.Thead>
+                <Table.Tbody>
+                  {stats.byResponsible.map((row) => (
+                    <Table.Tr key={row.responsibleId}>
+                      <Table.Td>{row.name}</Table.Td>
+                      <Table.Td>{row.total}</Table.Td>
+                      <Table.Td>{row.done}</Table.Td>
+                      <Table.Td>{row.completionRate.toFixed(0)}%</Table.Td>
+                      <Table.Td>{row.exceededHours.toFixed(1)}</Table.Td>
+                    </Table.Tr>
+                  ))}
+                </Table.Tbody>
+              </Table>
+            </Table.ScrollContainer>
           </Card>
 
           <Card withBorder padding="md">
@@ -209,30 +211,32 @@ export function DashboardPage() {
                 Nenhum gargalo neste mês.
               </Text>
             ) : (
-              <Table>
-                <Table.Thead>
-                  <Table.Tr>
-                    <Table.Th>Atividade</Table.Th>
-                    <Table.Th>Responsável</Table.Th>
-                    <Table.Th>Status</Table.Th>
-                    <Table.Th>Horas excedentes</Table.Th>
-                  </Table.Tr>
-                </Table.Thead>
-                <Table.Tbody>
-                  {stats.bottlenecks.map((row) => (
-                    <Table.Tr key={row.activityId}>
-                      <Table.Td>{row.title}</Table.Td>
-                      <Table.Td>{row.responsibleName}</Table.Td>
-                      <Table.Td>
-                        <Text c={STATUS_COLOR[row.status]} fw={600} size="sm">
-                          {STATUS_LABEL[row.status]}
-                        </Text>
-                      </Table.Td>
-                      <Table.Td>{row.exceededHours.toFixed(1)}</Table.Td>
+              <Table.ScrollContainer minWidth={500}>
+                <Table>
+                  <Table.Thead>
+                    <Table.Tr>
+                      <Table.Th>Atividade</Table.Th>
+                      <Table.Th>Responsável</Table.Th>
+                      <Table.Th>Status</Table.Th>
+                      <Table.Th>Horas excedentes</Table.Th>
                     </Table.Tr>
-                  ))}
-                </Table.Tbody>
-              </Table>
+                  </Table.Thead>
+                  <Table.Tbody>
+                    {stats.bottlenecks.map((row) => (
+                      <Table.Tr key={row.activityId}>
+                        <Table.Td>{row.title}</Table.Td>
+                        <Table.Td>{row.responsibleName}</Table.Td>
+                        <Table.Td>
+                          <Text c={STATUS_COLOR[row.status]} fw={600} size="sm">
+                            {STATUS_LABEL[row.status]}
+                          </Text>
+                        </Table.Td>
+                        <Table.Td>{row.exceededHours.toFixed(1)}</Table.Td>
+                      </Table.Tr>
+                    ))}
+                  </Table.Tbody>
+                </Table>
+              </Table.ScrollContainer>
             )}
           </Card>
         </Stack>

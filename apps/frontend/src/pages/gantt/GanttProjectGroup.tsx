@@ -1,7 +1,7 @@
 import { Badge, Text, UnstyledButton } from '@mantine/core';
 import { IconChevronDown, IconChevronRight } from '@tabler/icons-react';
 import { ActivityDto, ProjectDto } from '@workflow-brasal/shared';
-import { LABEL_COLUMN_WIDTH, PROJECT_HEADER_HEIGHT } from './gantt.constants';
+import { PROJECT_HEADER_HEIGHT } from './gantt.constants';
 import { BarGeometry } from './gantt.layout';
 import { GanttActivityRow } from './GanttActivityRow';
 
@@ -14,6 +14,7 @@ export function GanttProjectGroup({
   blockedActivityIds,
   geometryByActivityId,
   trackWidth,
+  labelColumnWidth,
   onSelectActivity,
 }: {
   project: ProjectDto;
@@ -24,6 +25,7 @@ export function GanttProjectGroup({
   blockedActivityIds: Set<number>;
   geometryByActivityId: Map<number, BarGeometry | null>;
   trackWidth: number;
+  labelColumnWidth: number;
   onSelectActivity: (activity: ActivityDto) => void;
 }) {
   return (
@@ -31,7 +33,7 @@ export function GanttProjectGroup({
       <div style={{ display: 'flex', height: PROJECT_HEADER_HEIGHT }}>
         <div
           style={{
-            width: LABEL_COLUMN_WIDTH,
+            width: labelColumnWidth,
             flexShrink: 0,
             position: 'sticky',
             left: 0,
@@ -75,6 +77,7 @@ export function GanttProjectGroup({
             geometry={geometryByActivityId.get(activity.id) ?? null}
             isBlocked={blockedActivityIds.has(activity.id)}
             trackWidth={trackWidth}
+            labelColumnWidth={labelColumnWidth}
             onSelect={() => onSelectActivity(activity)}
           />
         ))}

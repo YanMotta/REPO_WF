@@ -1,6 +1,7 @@
 import { Text } from '@mantine/core';
+import { useMediaQuery } from '@mantine/hooks';
 import { ActivityDto } from '@workflow-brasal/shared';
-import { LABEL_COLUMN_WIDTH, ROW_HEIGHT } from './gantt.constants';
+import { ROW_HEIGHT } from './gantt.constants';
 import { BarGeometry } from './gantt.layout';
 import { GanttActivityBar } from './GanttActivityBar';
 
@@ -10,6 +11,7 @@ export function GanttActivityRow({
   geometry,
   isBlocked,
   trackWidth,
+  labelColumnWidth,
   onSelect,
 }: {
   activity: ActivityDto;
@@ -17,13 +19,16 @@ export function GanttActivityRow({
   geometry: BarGeometry | null;
   isBlocked: boolean;
   trackWidth: number;
+  labelColumnWidth: number;
   onSelect: () => void;
 }) {
+  const isMobile = useMediaQuery('(max-width: 48em)');
+
   return (
     <div style={{ display: 'flex', height: ROW_HEIGHT }}>
       <div
         style={{
-          width: LABEL_COLUMN_WIDTH,
+          width: labelColumnWidth,
           flexShrink: 0,
           position: 'sticky',
           left: 0,
@@ -31,7 +36,7 @@ export function GanttActivityRow({
           display: 'flex',
           alignItems: 'center',
           gap: 6,
-          paddingLeft: 28,
+          paddingLeft: isMobile ? 16 : 28,
           paddingRight: 8,
           background: 'var(--mantine-color-body)',
           borderBottom: '1px solid var(--mantine-color-default-border)',
@@ -40,9 +45,11 @@ export function GanttActivityRow({
         <Text size="sm" truncate style={{ flex: 1 }}>
           {activity.title}
         </Text>
-        <Text size="xs" c="dimmed" truncate style={{ maxWidth: 90 }}>
-          {responsibleName}
-        </Text>
+        {!isMobile && (
+          <Text size="xs" c="dimmed" truncate style={{ maxWidth: 90 }}>
+            {responsibleName}
+          </Text>
+        )}
       </div>
       <div
         style={{

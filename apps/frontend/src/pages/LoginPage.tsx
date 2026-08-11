@@ -49,7 +49,7 @@ export function LoginPage() {
 
   return (
     <Center h="100vh" bg="var(--mantine-color-body)">
-      <Paper withBorder shadow="md" p={30} radius="md" w={380}>
+      <Paper withBorder shadow="md" p={{ base: 20, sm: 30 }} radius="md" w={{ base: '92%', sm: 380 }}>
         <Stack align="center" mb="lg">
           <BrasalLogo />
         </Stack>
@@ -69,6 +69,11 @@ export function LoginPage() {
               onChange={(e) => setPassword(e.currentTarget.value)}
               required
             />
+            <Text size="sm" ta="right">
+              <Anchor component={Link} to="/forgot-password">
+                Esqueci minha senha
+              </Anchor>
+            </Text>
             {error && (
               <Alert color="red" variant="light">
                 {error}

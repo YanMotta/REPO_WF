@@ -45,7 +45,7 @@ export function GanttFilterBar({
     <Group gap="xs" wrap="wrap">
       <Select
         placeholder="Responsável"
-        w={180}
+        w={{ base: '100%', sm: 180 }}
         clearable
         value={filters.responsibleId != null ? String(filters.responsibleId) : null}
         onChange={(value) => set('responsibleId', value ? Number(value) : null)}
@@ -53,7 +53,7 @@ export function GanttFilterBar({
       />
       <Select
         placeholder="Status"
-        w={170}
+        w={{ base: '100%', sm: 170 }}
         clearable
         value={filters.status}
         onChange={(value) => set('status', (value as ActivityStatus) || null)}
@@ -61,7 +61,7 @@ export function GanttFilterBar({
       />
       <Select
         placeholder="Prioridade"
-        w={150}
+        w={{ base: '100%', sm: 150 }}
         clearable
         value={filters.priority}
         onChange={(value) => set('priority', (value as ActivityPriority) || null)}
@@ -70,7 +70,7 @@ export function GanttFilterBar({
       <DatePickerInput
         type="range"
         placeholder="Período"
-        w={220}
+        w={{ base: '100%', sm: 220 }}
         clearable
         value={filters.dateRange}
         onChange={(value) => set('dateRange', value as [Date | null, Date | null])}
