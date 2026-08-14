@@ -7,21 +7,24 @@ import {
   IconLayoutDashboard,
   IconLayoutKanban,
   IconLogout,
+  IconMail,
   IconTimeline,
   IconUsers,
 } from '@tabler/icons-react';
 import { Role } from '@workflow-brasal/shared';
+import { useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { BrasalLogo } from '../components/BrasalLogo';
+import { ChangeEmailModal } from '../pages/users/ChangeEmailModal';
 
 const NAV_ITEMS = [
+  { label: 'Checklist', path: '/modelos-fechamento', icon: IconChecklist, adminOnly: true },
   { label: 'Atividades', path: '/fechamento', icon: IconCalendarStats, adminOnly: false },
   { label: 'Dashboard', path: '/dashboard', icon: IconLayoutDashboard, adminOnly: true },
   { label: 'Quadro', path: '/quadro', icon: IconLayoutKanban, adminOnly: false },
   { label: 'Cronogramas', path: '/projetos', icon: IconFolders, adminOnly: true },
   { label: 'Gantt', path: '/gantt', icon: IconTimeline, adminOnly: true },
-  { label: 'Checklist', path: '/modelos-fechamento', icon: IconChecklist, adminOnly: true },
   { label: 'Usuários', path: '/usuarios', icon: IconUsers, adminOnly: true },
 ];
 
@@ -32,6 +35,7 @@ export function AppLayout() {
   const isAdmin = user?.role === Role.ADMIN;
   const visibleNavItems = NAV_ITEMS.filter((item) => isAdmin || !item.adminOnly);
   const [mobileOpened, { toggle: toggleMobile, close: closeMobile }] = useDisclosure(false);
+  const [changeEmailOpened, setChangeEmailOpened] = useState(false);
 
   function handleLogout() {
     logout();
@@ -79,6 +83,12 @@ export function AppLayout() {
               {user.name}
             </Text>
             <NavLink
+              label="Alterar e-mail"
+              leftSection={<IconMail size={18} />}
+              onClick={() => setChangeEmailOpened(true)}
+              style={{ borderRadius: 8, marginBottom: 4 }}
+            />
+            <NavLink
               label="Sair"
               leftSection={<IconLogout size={18} />}
               onClick={handleLogout}
@@ -90,6 +100,8 @@ export function AppLayout() {
       <AppShell.Main bg="var(--mantine-color-body)">
         <Outlet />
       </AppShell.Main>
+
+      <ChangeEmailModal opened={changeEmailOpened} onClose={() => setChangeEmailOpened(false)} />
     </AppShell>
   );
 }

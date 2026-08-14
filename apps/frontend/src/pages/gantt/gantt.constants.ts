@@ -1,12 +1,5 @@
 export type ZoomLevel = 'day' | 'week' | 'month' | 'quarter';
 
-export const ZOOM_OPTIONS: { value: ZoomLevel; label: string }[] = [
-  { value: 'day', label: 'Dia' },
-  { value: 'week', label: 'Semana' },
-  { value: 'month', label: 'Mês' },
-  { value: 'quarter', label: 'Trimestre' },
-];
-
 export const DEFAULT_ZOOM: ZoomLevel = 'week';
 
 /** Hand-tuned pixel density per zoom level — fixed, not "fit to width", since horizontal

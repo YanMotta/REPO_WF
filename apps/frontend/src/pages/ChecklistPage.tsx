@@ -16,6 +16,7 @@ import { ApiError } from '../api/client';
 import { listProjects } from '../api/projects';
 import { listUsers } from '../api/users';
 import { MonthYearSelector } from '../components/MonthYearSelector';
+import { usePeriod } from '../period/PeriodContext';
 import { formatBusinessDayRule } from '../utils/format';
 import { CreateActivityModal } from './checklist/CreateActivityModal';
 import { TemplateFormModal } from './checklist/TemplateFormModal';
@@ -30,8 +31,9 @@ export function ChecklistPage() {
   const [editingDependsOn, setEditingDependsOn] = useState<number[]>([]);
   const [templateModalOpen, setTemplateModalOpen] = useState(false);
   const [activityModalOpen, setActivityModalOpen] = useState(false);
-  const [generateMonth, setGenerateMonth] = useState(now.getMonth() + 1);
-  const [generateYear, setGenerateYear] = useState(now.getFullYear());
+  // The month/year picked here is the app-wide selected period — Atividades, Dashboard, Quadro
+  // and Gantt all read it via usePeriod(). Cronogramas and Usuários deliberately don't.
+  const { month: generateMonth, year: generateYear, setPeriod } = usePeriod();
 
   const templatesQuery = useQuery({ queryKey: ['activity-templates'], queryFn: listActivityTemplates });
   const usersQuery = useQuery({ queryKey: ['users'], queryFn: listUsers });
@@ -148,14 +150,7 @@ export function ChecklistPage() {
       </Group>
 
       <Group mb="md" align="flex-end">
-        <MonthYearSelector
-          month={generateMonth}
-          year={generateYear}
-          onChange={(m, y) => {
-            setGenerateMonth(m);
-            setGenerateYear(y);
-          }}
-        />
+        <MonthYearSelector month={generateMonth} year={generateYear} onChange={setPeriod} />
         <Button
           onClick={() => generateClosureMutation.mutate()}
           loading={generateClosureMutation.isPending}

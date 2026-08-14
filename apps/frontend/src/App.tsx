@@ -4,6 +4,7 @@ import { RequireAuth } from './auth/RequireAuth';
 import { AppLayout } from './layout/AppLayout';
 import { AtividadesPage } from './pages/AtividadesPage';
 import { ChecklistPage } from './pages/ChecklistPage';
+import { ConfirmEmailChangePage } from './pages/ConfirmEmailChangePage';
 import { DashboardPage } from './pages/DashboardPage';
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
 import { GanttPage } from './pages/GanttPage';
@@ -14,6 +15,7 @@ import { RegisterPage } from './pages/RegisterPage';
 import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { UsersPage } from './pages/UsersPage';
 import { VerifyEmailPage } from './pages/VerifyEmailPage';
+import { PeriodProvider } from './period/PeriodContext';
 
 export function App() {
   return (
@@ -23,10 +25,13 @@ export function App() {
       <Route path="/verify-email" element={<VerifyEmailPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
+      <Route path="/confirm-email-change" element={<ConfirmEmailChangePage />} />
       <Route
         element={
           <RequireAuth>
-            <AppLayout />
+            <PeriodProvider>
+              <AppLayout />
+            </PeriodProvider>
           </RequireAuth>
         }
       >

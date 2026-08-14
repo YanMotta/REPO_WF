@@ -7,12 +7,13 @@ import { listAllDependencies, listActivities } from '../api/activities';
 import { ApiError } from '../api/client';
 import { listProjects } from '../api/projects';
 import { listUsers } from '../api/users';
+import { CurrentMonthBadge } from '../components/CurrentMonthBadge';
+import { usePeriod } from '../period/PeriodContext';
 import { ActivityDetailsDrawer } from './atividades/ActivityDetailsDrawer';
 import { EMPTY_GANTT_FILTERS, GanttFilterBar, GanttFilters } from './gantt/GanttFilterBar';
 import { GanttDependencyOverlay } from './gantt/GanttDependencyOverlay';
 import { GanttProjectGroup } from './gantt/GanttProjectGroup';
 import { GanttTimelineHeader } from './gantt/GanttTimelineHeader';
-import { GanttZoomControl } from './gantt/GanttZoomControl';
 import {
   DEFAULT_ZOOM,
   LABEL_COLUMN_WIDTH,
@@ -20,7 +21,6 @@ import {
   PROJECT_HEADER_HEIGHT,
   ROW_HEIGHT,
   ZOOM_PX_PER_DAY,
-  ZoomLevel,
 } from './gantt/gantt.constants';
 import {
   BarGeometry,
@@ -47,21 +47,34 @@ function matchesFilters(activity: ActivityDto, filters: GanttFilters, blockedAct
   return true;
 }
 
+// Gantt now always shows a single month (the app-wide selected period), so there's no longer a
+// user-facing zoom control — a fixed week-level granularity reads well for a ~30-day span.
+const zoomLevel = DEFAULT_ZOOM;
+
 export function GanttPage() {
-  const [zoomLevel, setZoomLevel] = useState<ZoomLevel>(DEFAULT_ZOOM);
   const [filters, setFilters] = useState<GanttFilters>(EMPTY_GANTT_FILTERS);
   const [collapsedProjectIds, setCollapsedProjectIds] = useState<Set<number>>(new Set());
   const [selectedActivity, setSelectedActivity] = useState<ActivityDto | null>(null);
   const isMobile = useMediaQuery('(max-width: 48em)');
   const labelColumnWidth = isMobile ? LABEL_COLUMN_WIDTH_MOBILE : LABEL_COLUMN_WIDTH;
 
-  const activitiesQuery = useQuery({ queryKey: ['activities'], queryFn: () => listActivities() });
+  const { month, year, isLoading: monthLoading } = usePeriod();
+
+  const activitiesQuery = useQuery({
+    queryKey: ['activities', 'gantt', month, year],
+    queryFn: () => listActivities({ month, year }),
+    enabled: !monthLoading,
+  });
   const projectsQuery = useQuery({ queryKey: ['projects'], queryFn: listProjects });
   const usersQuery = useQuery({ queryKey: ['users'], queryFn: listUsers });
   const depsQuery = useQuery({ queryKey: ['activity-dependencies-all'], queryFn: listAllDependencies });
 
   const isLoading =
-    activitiesQuery.isLoading || projectsQuery.isLoading || usersQuery.isLoading || depsQuery.isLoading;
+    monthLoading ||
+    activitiesQuery.isLoading ||
+    projectsQuery.isLoading ||
+    usersQuery.isLoading ||
+    depsQuery.isLoading;
   const queryError = [activitiesQuery.error, projectsQuery.error, usersQuery.error, depsQuery.error].find(
     (error): error is Error => !!error,
   );
@@ -88,13 +101,13 @@ export function GanttPage() {
     return map;
   }, [depsQuery.data]);
 
-  /** Same predicate as ActivitiesService.getBlockedBy (a predecessor not yet DONE), just
-   * evaluated in memory over the already-fetched bulk data instead of one activity at a time —
-   * not a new business rule. */
+  /** Same predicate as ActivitiesService.getBlockedBy — a predecessor is resolved once it has a
+   * completionDate, not specifically status === DONE (a predecessor completed after its deadline
+   * ends up LATE, not DONE, but is still finished and must not keep blocking dependents). */
   const blockedActivityIds = useMemo(() => {
     const blocked = new Set<number>();
     predecessorsByActivityId.forEach((predecessorIds, activityId) => {
-      const isBlocked = predecessorIds.some((id) => activityById.get(id)?.status !== ActivityStatus.DONE);
+      const isBlocked = predecessorIds.some((id) => !activityById.get(id)?.completionDate);
       if (isBlocked) blocked.add(activityId);
     });
     return blocked;
@@ -211,9 +224,9 @@ export function GanttPage() {
 
   return (
     <Stack gap="md">
-      <Group justify="space-between" align="flex-start" wrap="wrap">
+      <Group gap="sm">
         <Title order={2}>Gantt</Title>
-        <GanttZoomControl value={zoomLevel} onChange={setZoomLevel} />
+        <CurrentMonthBadge month={month} year={year} />
       </Group>
 
       <GanttFilterBar

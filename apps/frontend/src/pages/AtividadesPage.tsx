@@ -1,12 +1,12 @@
 import { Badge, Group, Loader, Select, Table, Text, TextInput, Title, UnstyledButton } from '@mantine/core';
-import { ActivityDto } from '@workflow-brasal/shared';
+import { ActivityDto, ActivityStatus } from '@workflow-brasal/shared';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import { listActivities } from '../api/activities';
 import { listUsers } from '../api/users';
 import { CurrentMonthBadge } from '../components/CurrentMonthBadge';
 import { STATUS_COLOR, STATUS_LABEL } from '../constants/status';
-import { useCurrentClosureMonth } from '../hooks/useCurrentClosureMonth';
+import { usePeriod } from '../period/PeriodContext';
 import { formatBusinessDayRule, formatDate, formatTime } from '../utils/format';
 import { ActivityDetailsDrawer } from './atividades/ActivityDetailsDrawer';
 import { PredecessorCell } from './atividades/PredecessorCell';
@@ -20,7 +20,7 @@ export function AtividadesPage() {
   const [responsibleFilter, setResponsibleFilter] = useState<string>(ALL_RESPONSIBLE);
   const [numberFilter, setNumberFilter] = useState('');
 
-  const { month, year, isLoading: monthLoading } = useCurrentClosureMonth();
+  const { month, year, isLoading: monthLoading } = usePeriod();
 
   const activitiesQuery = useQuery({
     queryKey: ['activities', year, month],
@@ -124,14 +124,15 @@ export function AtividadesPage() {
               <Table.Th>Predecessora</Table.Th>
               <Table.Th>Premissa</Table.Th>
               <Table.Th>Previsto</Table.Th>
-              <Table.Th>Horário</Table.Th>
+              <Table.Th>Horário limite</Table.Th>
+              <Table.Th>Concluído</Table.Th>
               <Table.Th>Status</Table.Th>
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>
             {filteredActivities.length === 0 && (
               <Table.Tr>
-                <Table.Td colSpan={8}>
+                <Table.Td colSpan={9}>
                   <Text c="dimmed" ta="center" py="md">
                     Nenhuma atividade encontrada para os filtros selecionados.
                   </Text>
@@ -168,6 +169,12 @@ export function AtividadesPage() {
                 </Table.Td>
                 <Table.Td>{formatDate(activity.deadline)}</Table.Td>
                 <Table.Td>{activity.dueTime ?? formatTime(activity.deadline)}</Table.Td>
+                <Table.Td>
+                  {(activity.status === ActivityStatus.DONE || activity.status === ActivityStatus.LATE) &&
+                  activity.completionDate
+                    ? formatTime(activity.completionDate)
+                    : '—'}
+                </Table.Td>
                 <Table.Td>
                   <Badge color={STATUS_COLOR[activity.status]}>{STATUS_LABEL[activity.status]}</Badge>
                 </Table.Td>

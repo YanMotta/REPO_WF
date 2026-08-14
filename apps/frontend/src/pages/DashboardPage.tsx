@@ -19,7 +19,7 @@ import { listActivities } from '../api/activities';
 import { listUsers } from '../api/users';
 import { CurrentMonthBadge } from '../components/CurrentMonthBadge';
 import { KANBAN_COLUMNS, STATUS_COLOR, STATUS_LABEL } from '../constants/status';
-import { useCurrentClosureMonth } from '../hooks/useCurrentClosureMonth';
+import { usePeriod } from '../period/PeriodContext';
 import { computeDashboardStats } from './dashboard/computeStats';
 
 function StatCard({ label, value }: { label: string; value: string }) {
@@ -39,19 +39,19 @@ export function DashboardPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  const closureMonth = useCurrentClosureMonth();
+  const period = usePeriod();
 
   // Arriving with explicit month/year (drill-down from a Cronogramas month card) shows that
-  // month instead of the default one, with a way back. Otherwise this shows the most recently
-  // generated closure's month — there's no free-form picker.
+  // month instead of the globally-selected one, with a way back. Otherwise this shows the
+  // app-wide selected period (Checklist's month selector, or its smart default).
   const hasExplicitMonth = searchParams.has('month') && searchParams.has('year');
-  const month = hasExplicitMonth ? Number(searchParams.get('month')) : closureMonth.month;
-  const year = hasExplicitMonth ? Number(searchParams.get('year')) : closureMonth.year;
+  const month = hasExplicitMonth ? Number(searchParams.get('month')) : period.month;
+  const year = hasExplicitMonth ? Number(searchParams.get('year')) : period.year;
 
   const activitiesQuery = useQuery({
     queryKey: ['activities', 'dashboard', month, year],
     queryFn: () => listActivities({ month, year }),
-    enabled: hasExplicitMonth || !closureMonth.isLoading,
+    enabled: hasExplicitMonth || !period.isLoading,
   });
   const usersQuery = useQuery({ queryKey: ['users'], queryFn: listUsers });
 
@@ -61,7 +61,7 @@ export function DashboardPage() {
   }, [activitiesQuery.data, usersQuery.data]);
 
   const isLoading =
-    (!hasExplicitMonth && closureMonth.isLoading) || activitiesQuery.isLoading || usersQuery.isLoading;
+    (!hasExplicitMonth && period.isLoading) || activitiesQuery.isLoading || usersQuery.isLoading;
 
   return (
     <>
