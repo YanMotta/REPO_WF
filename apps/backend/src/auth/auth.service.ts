@@ -147,6 +147,60 @@ export class AuthService {
     return { message: 'Senha redefinida com sucesso. Você já pode fazer login com a nova senha.' };
   }
 
+  /** Requires the current password so a hijacked/left-open session can't silently redirect the
+   * account's e-mail — the confirmation link itself goes to `newEmail`, not the current one, so
+   * nothing is sent anywhere until this check passes. */
+  async changeEmail(userId: number, newEmail: string, password: string): Promise<{ message: string }> {
+    const user = await this.usersService.findById(userId);
+
+    const passwordMatches = await bcrypt.compare(password, user.passwordHash);
+    if (!passwordMatches) throw new UnauthorizedException('Senha incorreta');
+
+    if (newEmail === user.email) {
+      throw new BadRequestException('O novo e-mail é igual ao atual');
+    }
+
+    const existing = await this.usersService.findByEmail(newEmail);
+    if (existing) throw new ConflictException('E-mail já cadastrado');
+
+    const token = generateVerificationToken();
+    const updated = await this.usersService.setPendingEmailChange(userId, newEmail, token, this.buildTokenExpiry());
+    await this.sendEmailChangeConfirmation(updated, newEmail, token);
+
+    return { message: 'Enviamos um link de confirmação para o novo e-mail. Ele só passa a valer depois de confirmado.' };
+  }
+
+  /** No auto-login — same reasoning as resetPassword: this changes the login credential, so the
+   * user should authenticate explicitly afterward with the new e-mail. */
+  async confirmEmailChange(token: string): Promise<{ message: string }> {
+    const user = await this.usersService.findByEmailChangeToken(token);
+    if (!user || !user.pendingEmail) throw new BadRequestException('Link de confirmação inválido.');
+
+    if (!user.emailChangeTokenExpiresAt || user.emailChangeTokenExpiresAt < new Date()) {
+      throw new BadRequestException('Link de confirmação expirado. Solicite a troca novamente.');
+    }
+
+    await this.usersService.confirmEmailChange(user.id, user.pendingEmail);
+    return { message: 'E-mail atualizado com sucesso. Faça login novamente com o novo e-mail.' };
+  }
+
+  private async sendEmailChangeConfirmation(user: User, newEmail: string, token: string): Promise<void> {
+    const frontendUrl = this.configService.get<string>('FRONTEND_URL', 'http://localhost:5173');
+    const minutes = this.configService.get<number>('EMAIL_VERIFICATION_TTL_MINUTES', 30);
+    const link = `${frontendUrl}/confirm-email-change?token=${token}`;
+
+    try {
+      await this.notificationsService.sendRaw(
+        user.id,
+        newEmail,
+        'Confirme a troca de e-mail — Workflow Brasal',
+        `Olá, ${user.name}!\n\nRecebemos uma solicitação para trocar o e-mail da sua conta para este endereço. Clique no link abaixo para confirmar (válido por ${minutes} minutos):\n\n${link}\n\nSe você não solicitou esta troca, ignore este e-mail — seu e-mail atual continua valendo.`,
+      );
+    } catch (err) {
+      this.logger.error(`Failed to send e-mail change confirmation to user ${user.id}: ${err}`);
+    }
+  }
+
   private buildPasswordResetTokenExpiry(): Date {
     const minutes = this.configService.get<number>('PASSWORD_RESET_TTL_MINUTES', 30);
     return new Date(Date.now() + minutes * 60 * 1000);

@@ -11,12 +11,7 @@ const ROLE_OPTIONS = [
 
 interface FormShape {
   name: string;
-  email: string;
   role: Role;
-}
-
-function isValidEmail(email: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
 export function UserFormModal({
@@ -30,11 +25,11 @@ export function UserFormModal({
   onSubmit: (input: UpdateUserInput) => void;
   user: UserDto | null;
 }) {
-  const [form, setForm] = useState<FormShape>({ name: '', email: '', role: Role.MEMBER });
+  const [form, setForm] = useState<FormShape>({ name: '', role: Role.MEMBER });
 
   useEffect(() => {
     if (user) {
-      setForm({ name: user.name, email: user.email, role: user.role });
+      setForm({ name: user.name, role: user.role });
     }
   }, [user, opened]);
 
@@ -42,7 +37,7 @@ export function UserFormModal({
     onSubmit(form);
   }
 
-  const isValid = form.name.trim().length >= 2 && isValidEmail(form.email);
+  const isValid = form.name.trim().length >= 2;
 
   return (
     <Modal opened={opened} onClose={onClose} title="Editar usuário">
@@ -53,13 +48,9 @@ export function UserFormModal({
           value={form.name}
           onChange={(e) => setForm({ ...form, name: e.currentTarget.value })}
         />
-        <TextInput
-          label="E-mail"
-          required
-          type="email"
-          value={form.email}
-          onChange={(e) => setForm({ ...form, email: e.currentTarget.value })}
-        />
+        {user && (
+          <TextInput label="E-mail" value={user.email} disabled description="Só o próprio usuário pode alterar o e-mail" />
+        )}
         <Select
           label="Perfil"
           data={ROLE_OPTIONS}

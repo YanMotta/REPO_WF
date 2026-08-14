@@ -42,4 +42,16 @@ export class User {
 
   @Column({ type: 'datetime', nullable: true })
   passwordResetTokenExpiresAt: Date | null;
+
+  /** Additive & nullable — every existing row correctly starts as "no e-mail change in
+   * progress" with no backfill needed. Set together as a trio; cleared together on confirm. */
+  @Column({ type: 'varchar', nullable: true })
+  pendingEmail: string | null;
+
+  @Index()
+  @Column({ type: 'varchar', nullable: true })
+  emailChangeToken: string | null;
+
+  @Column({ type: 'datetime', nullable: true })
+  emailChangeTokenExpiresAt: Date | null;
 }

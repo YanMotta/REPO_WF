@@ -1,8 +1,11 @@
 import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
+import { AuthenticatedUser, CurrentUser } from '../common/decorators/current-user.decorator';
 import { Public } from '../common/decorators/public.decorator';
 import { AuthService } from './auth.service';
+import { ChangeEmailDto } from './dto/change-email.dto';
+import { ConfirmEmailChangeDto } from './dto/confirm-email-change.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
@@ -59,5 +62,19 @@ export class AuthController {
   @Post('reset-password')
   resetPassword(@Body() dto: ResetPasswordDto) {
     return this.authService.resetPassword(dto.token, dto.newPassword);
+  }
+
+  @Throttle(REGISTRATION_THROTTLE)
+  @HttpCode(HttpStatus.OK)
+  @Post('change-email')
+  changeEmail(@Body() dto: ChangeEmailDto, @CurrentUser() currentUser: AuthenticatedUser) {
+    return this.authService.changeEmail(currentUser.id, dto.newEmail, dto.password);
+  }
+
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @Post('confirm-email-change')
+  confirmEmailChange(@Body() dto: ConfirmEmailChangeDto) {
+    return this.authService.confirmEmailChange(dto.token);
   }
 }

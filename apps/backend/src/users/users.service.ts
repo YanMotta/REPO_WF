@@ -1,4 +1,4 @@
-import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Role } from '@workflow-brasal/shared';
 import * as bcrypt from 'bcryptjs';
@@ -84,13 +84,35 @@ export class UsersService {
     }
 
     const user = await this.findById(id);
-
-    if (dto.email && dto.email !== user.email) {
-      const existing = await this.findByEmail(dto.email);
-      if (existing) throw new ConflictException('E-mail já cadastrado');
-    }
-
     Object.assign(user, dto);
+    return this.usersRepository.save(user);
+  }
+
+  findByEmailChangeToken(token: string): Promise<User | null> {
+    return this.usersRepository.findOne({ where: { emailChangeToken: token } });
+  }
+
+  async setPendingEmailChange(
+    id: number,
+    pendingEmail: string,
+    token: string,
+    expiresAt: Date,
+  ): Promise<User> {
+    const user = await this.findById(id);
+    user.pendingEmail = pendingEmail;
+    user.emailChangeToken = token;
+    user.emailChangeTokenExpiresAt = expiresAt;
+    return this.usersRepository.save(user);
+  }
+
+  /** Applies the pending e-mail and clears the token trio in the same write — mirrors
+   * resetPassword's "consume + apply atomically" shape. */
+  async confirmEmailChange(id: number, newEmail: string): Promise<User> {
+    const user = await this.findById(id);
+    user.email = newEmail;
+    user.pendingEmail = null;
+    user.emailChangeToken = null;
+    user.emailChangeTokenExpiresAt = null;
     return this.usersRepository.save(user);
   }
 
