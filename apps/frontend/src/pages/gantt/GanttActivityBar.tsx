@@ -24,7 +24,10 @@ export function GanttActivityBar({
   onClick: () => void;
 }) {
   const isMobile = useMediaQuery('(max-width: 48em)');
-  const isDone = activity.status === 'DONE';
+  // Finished means completionDate is set, not status === 'DONE' specifically — an activity
+  // completed after its deadline ends up 'LATE', but is still done and should still get the
+  // checkmark.
+  const isDone = Boolean(activity.completionDate);
   const progress = Math.min(Math.max(activity.progressPercent, 0), 100);
   const color = STATUS_COLOR[activity.status];
 

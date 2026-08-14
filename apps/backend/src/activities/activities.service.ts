@@ -7,7 +7,7 @@ import {
   parseLocalDateOnly,
   resolveBusinessDayOffset,
 } from '@workflow-brasal/shared';
-import { Between, In, LessThan, Not, Repository } from 'typeorm';
+import { Between, In, IsNull, LessThan, Not, Repository } from 'typeorm';
 import {
   ActivityAssigneeChangedPayload,
   ActivityBecameLatePayload,
@@ -190,10 +190,15 @@ export class ActivitiesService {
 
   /**
    * Manual status change endpoint. `assertManualStatusTransition` enforces that READY_TO_START
-   * and LATE are system-only, and that IN_PROGRESS requires all dependencies resolved.
-   * On DONE, `exceededHours` is unconditionally recomputed — never guarded by an `if (late)`
-   * check — so a previously-late activity whose deadline was later corrected reports 0, not a
-   * stale value from an earlier completion attempt.
+   * and LATE are system-only (as a direct request), and that IN_PROGRESS requires all
+   * dependencies resolved.
+   * On a DONE request, `exceededHours` is unconditionally recomputed — never guarded by an
+   * `if (late)` check — so a previously-late activity whose deadline was later corrected reports
+   * 0, not a stale value from an earlier completion attempt. If completing lands after the
+   * deadline (exceededHours > 0), the activity is finished — completionDate/exceededHours record
+   * that — but its final status becomes LATE instead of DONE, per business rule: a task done past
+   * its deadline is "atrasada", not "concluída". completionDate is what actually marks it as
+   * finished from here on (see getBlockedBy/findAllLate), not the DONE label specifically.
    */
   async changeStatus(
     id: number,
@@ -205,14 +210,17 @@ export class ActivitiesService {
     assertManualStatusTransition(activity.status, dto.status, blockedByCount);
 
     const oldStatus = activity.status;
-    activity.status = dto.status;
+    const isCompleting = dto.status === ActivityStatus.DONE;
 
-    if (dto.status === ActivityStatus.DONE) {
+    if (isCompleting) {
       activity.completionDate = new Date();
       activity.exceededHours = activity.deadline
         ? Math.max(0, hoursBetween(activity.deadline, activity.completionDate))
         : 0;
     }
+
+    const finalStatus = isCompleting && activity.exceededHours > 0 ? ActivityStatus.LATE : dto.status;
+    activity.status = finalStatus;
 
     const saved = await this.activitiesRepository.save(activity);
 
@@ -220,12 +228,12 @@ export class ActivitiesService {
       saved.id,
       ActivityHistoryEventType.STATUS_CHANGED,
       oldStatus,
-      dto.status,
+      finalStatus,
       actorId,
     );
 
-    if (dto.status === ActivityStatus.DONE) {
-      await this.recordHistory(saved.id, ActivityHistoryEventType.COMPLETED, oldStatus, dto.status, actorId);
+    if (isCompleting) {
+      await this.recordHistory(saved.id, ActivityHistoryEventType.COMPLETED, oldStatus, finalStatus, actorId);
       const payload: ActivityCompletedPayload = { activityId: saved.id };
       this.eventEmitter.emit(DomainEvent.ActivityCompleted, payload);
     }
@@ -293,14 +301,17 @@ export class ActivitiesService {
     return this.dependenciesRepository.find();
   }
 
-  /** Predecessor activities not yet DONE — used to gate manual transition to IN_PROGRESS. */
+  /** Predecessor activities not yet finished — used to gate manual transition to IN_PROGRESS.
+   * "Finished" means completionDate is set, not status === DONE specifically — a predecessor
+   * completed after its deadline ends up status LATE, not DONE, but it's still done and must not
+   * keep blocking its dependents. */
   async getBlockedBy(activityId: number): Promise<Activity[]> {
     const deps = await this.getDependencies(activityId);
     if (!deps.length) return [];
     const predecessors = await this.activitiesRepository.find({
       where: { id: In(deps.map((d) => d.dependsOnActivityId)) },
     });
-    return predecessors.filter((p) => p.status !== ActivityStatus.DONE);
+    return predecessors.filter((p) => p.completionDate == null);
   }
 
   /** Adding a dependency to a TO_DO activity rebases it to BACKLOG — same rule as at creation time. */
@@ -387,8 +398,13 @@ export class ActivitiesService {
     });
   }
 
+  /** Only still-open LATE activities — excludes ones completed after their deadline
+   * (completionDate set), whose exceededHours must stay frozen at the value recorded at
+   * completion, not keep growing with the current time. */
   findAllLate(): Promise<Activity[]> {
-    return this.activitiesRepository.find({ where: { status: ActivityStatus.LATE } });
+    return this.activitiesRepository.find({
+      where: { status: ActivityStatus.LATE, completionDate: IsNull() },
+    });
   }
 
   /** Not yet late/done, with a deadline landing inside [now, windowEnd] — candidates for the

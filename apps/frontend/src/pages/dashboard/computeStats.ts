@@ -46,20 +46,20 @@ export function computeDashboardStats(activities: ActivityDto[], users: UserDto[
   });
 
   const total = activities.length;
-  const doneActivities = activities.filter((a) => a.status === ActivityStatus.DONE);
+  // "Done" means completionDate is set, not status === DONE specifically — an activity completed
+  // after its deadline ends up status LATE, but it's still finished and must count as done here.
+  const doneActivities = activities.filter((a) => a.completionDate != null);
   const lateCount = statusCounts[ActivityStatus.LATE];
 
   const totalExceededHours = activities.reduce((sum, a) => sum + (a.exceededHours || 0), 0);
   const delayedActivities = activities.filter((a) => (a.exceededHours || 0) > 0);
   const averageDelayHours = average(delayedActivities.map((a) => a.exceededHours));
 
-  const leadTimes = doneActivities
-    .filter((a) => a.completionDate)
-    .map((a) => {
-      const created = new Date(a.createdAt).getTime();
-      const completed = new Date(a.completionDate as string).getTime();
-      return (completed - created) / (1000 * 60 * 60 * 24);
-    });
+  const leadTimes = doneActivities.map((a) => {
+    const created = new Date(a.createdAt).getTime();
+    const completed = new Date(a.completionDate as string).getTime();
+    return (completed - created) / (1000 * 60 * 60 * 24);
+  });
   const averageLeadTimeDays = leadTimes.length > 0 ? average(leadTimes) : null;
 
   const completionRate = total > 0 ? (doneActivities.length / total) * 100 : 0;
@@ -80,7 +80,7 @@ export function computeDashboardStats(activities: ActivityDto[], users: UserDto[
         exceededHours: 0,
       } satisfies ResponsibleStats);
     entry.total += 1;
-    if (a.status === ActivityStatus.DONE) entry.done += 1;
+    if (a.completionDate != null) entry.done += 1;
     entry.exceededHours += a.exceededHours || 0;
     byResponsibleMap.set(a.responsibleId, entry);
   });
