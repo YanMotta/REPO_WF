@@ -28,6 +28,18 @@ export interface CreateActivityDto {
   dependsOnActivityIds?: number[];
 }
 
+export interface UpdateActivityInput {
+  title?: string;
+  description?: string;
+  priority?: ActivityPriority;
+  startDate?: string;
+  deadline?: string;
+  estimatedHours?: number;
+  actualHours?: number;
+  progressPercent?: number;
+  notes?: string;
+}
+
 function toQueryString(filter: ActivityFilter): string {
   const params = new URLSearchParams();
   Object.entries(filter).forEach(([key, value]) => {
@@ -47,6 +59,10 @@ export function createActivity(dto: CreateActivityDto): Promise<ActivityDto> {
 
 export function getActivity(id: number): Promise<ActivityDto> {
   return api.get<ActivityDto>(`/activities/${id}`);
+}
+
+export function updateActivity(id: number, dto: UpdateActivityInput): Promise<ActivityDto> {
+  return api.patch<ActivityDto>(`/activities/${id}`, dto);
 }
 
 export function getActivityDependencies(id: number): Promise<ActivityDependencyDto[]> {

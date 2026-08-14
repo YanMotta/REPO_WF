@@ -1,10 +1,15 @@
-import { Badge, Drawer, Group, Stack, Text } from '@mantine/core';
-import { useQuery } from '@tanstack/react-query';
-import { ActivityDto } from '@workflow-brasal/shared';
-import { ReactNode } from 'react';
-import { getActivity, getActivityDependencies } from '../../api/activities';
+import { Badge, Button, Drawer, Group, Stack, Text } from '@mantine/core';
+import { notifications } from '@mantine/notifications';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { IconPencil } from '@tabler/icons-react';
+import { ActivityDto, ActivityStatus, Role } from '@workflow-brasal/shared';
+import { ReactNode, useEffect, useState } from 'react';
+import { getActivity, getActivityDependencies, updateActivity, UpdateActivityInput } from '../../api/activities';
+import { ApiError } from '../../api/client';
+import { useAuth } from '../../auth/AuthContext';
 import { STATUS_COLOR, STATUS_LABEL } from '../../constants/status';
 import { formatBusinessDayRule, formatDate, formatTime } from '../../utils/format';
+import { EditActivityModal } from './EditActivityModal';
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -80,8 +85,11 @@ export function ActivityDetailsContent({
 
       <Group grow>
         <Field label="Previsto">{formatDate(activity.deadline)}</Field>
-        <Field label="Horário">{activity.dueTime ?? formatTime(activity.deadline)}</Field>
+        <Field label="Horário limite">{activity.dueTime ?? formatTime(activity.deadline)}</Field>
       </Group>
+
+      {(activity.status === ActivityStatus.DONE || activity.status === ActivityStatus.LATE) &&
+        activity.completionDate && <Field label="Concluído em">{formatTime(activity.completionDate)}</Field>}
 
       <Group grow>
         <Field label="Horas previstas">{activity.estimatedHours ?? '—'}</Field>
@@ -104,13 +112,66 @@ export function ActivityDetailsDrawer({
   coResponsibleName: string | null;
   onClose: () => void;
 }) {
+  const { user } = useAuth();
+  const isAdmin = user?.role === Role.ADMIN;
+  const queryClient = useQueryClient();
+  const [editOpen, setEditOpen] = useState(false);
+  // Shows the just-saved version immediately, without waiting for the parent's own
+  // ['activities', ...] query (a different key per page) to refetch in the background.
+  const [displayActivity, setDisplayActivity] = useState<ActivityDto | null>(activity);
+
+  useEffect(() => {
+    setDisplayActivity(activity);
+  }, [activity]);
+
+  const updateMutation = useMutation({
+    mutationFn: (dto: UpdateActivityInput) => updateActivity(displayActivity!.id, dto),
+    onSuccess: (updated) => {
+      setDisplayActivity(updated);
+      setEditOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['activities'] });
+      queryClient.invalidateQueries({ queryKey: ['activity', updated.id] });
+      notifications.show({ color: 'green', title: 'Atividade atualizada', message: updated.title });
+    },
+    onError: (err: unknown) => {
+      notifications.show({
+        color: 'red',
+        title: 'Não foi possível salvar a atividade',
+        message: err instanceof ApiError ? err.message : 'Erro inesperado',
+      });
+    },
+  });
+
   return (
     <Drawer opened={!!activity} onClose={onClose} title="Detalhes da atividade" position="right" size="md">
-      {activity && (
-        <ActivityDetailsContent
-          activity={activity}
-          responsibleName={responsibleName}
-          coResponsibleName={coResponsibleName}
+      {displayActivity && (
+        <Stack gap="md">
+          {isAdmin && (
+            <Group justify="flex-end">
+              <Button
+                size="xs"
+                variant="light"
+                leftSection={<IconPencil size={14} />}
+                onClick={() => setEditOpen(true)}
+              >
+                Editar
+              </Button>
+            </Group>
+          )}
+          <ActivityDetailsContent
+            activity={displayActivity}
+            responsibleName={responsibleName}
+            coResponsibleName={coResponsibleName}
+          />
+        </Stack>
+      )}
+      {displayActivity && (
+        <EditActivityModal
+          opened={editOpen}
+          onClose={() => setEditOpen(false)}
+          activity={displayActivity}
+          onSubmit={(dto) => updateMutation.mutate(dto)}
+          isSaving={updateMutation.isPending}
         />
       )}
     </Drawer>
