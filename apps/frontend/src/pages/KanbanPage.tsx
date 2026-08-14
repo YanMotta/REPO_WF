@@ -1,19 +1,19 @@
 import { DragDropContext, Draggable, DropResult, Droppable } from '@hello-pangea/dnd';
-import { Badge, Card, Group, Paper, Popover, Stack, Text, Title } from '@mantine/core';
+import { Badge, Card, Group, Paper, Stack, Text, Title, Tooltip } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { IconGripVertical } from '@tabler/icons-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ActivityDto, ActivityStatus, Role } from '@workflow-brasal/shared';
+import { ActivityDto, ActivityStatus, Role, SYSTEM_ONLY_STATUSES } from '@workflow-brasal/shared';
 import { useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { changeActivityStatus, listActivities } from '../api/activities';
 import { ApiError } from '../api/client';
 import { listUsers } from '../api/users';
 import { useAuth } from '../auth/AuthContext';
-import { ActivityDetailsContent } from './atividades/ActivityDetailsDrawer';
+import { ActivityDetailsDrawer } from './atividades/ActivityDetailsDrawer';
 import { CurrentMonthBadge } from '../components/CurrentMonthBadge';
 import { KANBAN_COLUMNS, STATUS_COLOR, STATUS_LABEL } from '../constants/status';
-import { useCurrentClosureMonth } from '../hooks/useCurrentClosureMonth';
+import { usePeriod } from '../period/PeriodContext';
 import { formatDate } from '../utils/format';
 
 export function KanbanPage() {
@@ -21,13 +21,13 @@ export function KanbanPage() {
   const projectId = projectIdParam ? Number(projectIdParam) : undefined;
   const { user } = useAuth();
   const isAdmin = user?.role === Role.ADMIN;
-  const [previewActivityId, setPreviewActivityId] = useState<number | null>(null);
+  const [selectedActivity, setSelectedActivity] = useState<ActivityDto | null>(null);
 
   function canInteract(activity: ActivityDto): boolean {
     return isAdmin || activity.responsibleId === user?.id || activity.coResponsibleId === user?.id;
   }
 
-  const { month, year, isLoading: monthLoading } = useCurrentClosureMonth();
+  const { month, year, isLoading: monthLoading } = usePeriod();
 
   const queryClient = useQueryClient();
   const queryKey = ['activities', 'kanban', month, year, projectId];
@@ -75,16 +75,20 @@ export function KanbanPage() {
     const activity = (activitiesQuery.data ?? []).find((a) => a.id === activityId);
     if (!activity || activity.status === targetStatus || !canInteract(activity)) return;
 
-    // READY_TO_START/LATE are system-only — let the backend reject it, surfaced via onError.
     if (targetStatus === ActivityStatus.DONE) {
       const confirmed = window.confirm(
-        `Confirma a conclusão de "${activity.title}"? Essa ação marca a atividade como Concluída.`,
+        `Confirma a conclusão de "${activity.title}"? A atividade será marcada como Concluída (ou Atrasada, se o horário limite já tiver passado).`,
       );
       if (!confirmed) return;
     }
 
     statusMutation.mutate({ activityId, status: targetStatus });
   }
+
+  const selectedResponsibleName =
+    selectedActivity?.responsibleId != null ? userNameById.get(selectedActivity.responsibleId) ?? '—' : '—';
+  const selectedCoResponsibleName =
+    selectedActivity?.coResponsibleId != null ? userNameById.get(selectedActivity.coResponsibleId) ?? null : null;
 
   return (
     <>
@@ -104,13 +108,20 @@ export function KanbanPage() {
               miw={{ base: 240, sm: 260 }}
               bg="var(--mantine-color-body)"
             >
-              <Group justify="space-between" mb="xs">
+              <Group justify="space-between" mb="xs" gap="xs" wrap="nowrap">
                 <Badge color={STATUS_COLOR[status]}>{STATUS_LABEL[status]}</Badge>
-                <Text size="xs" c="dimmed">
+                {SYSTEM_ONLY_STATUSES.has(status) && (
+                  <Tooltip label="Definido automaticamente pelo sistema, não pode receber cards arrastados">
+                    <Badge variant="outline" color="gray" size="xs">
+                      Automático
+                    </Badge>
+                  </Tooltip>
+                )}
+                <Text size="xs" c="dimmed" style={{ marginLeft: 'auto' }}>
                   {columns.get(status)?.length ?? 0}
                 </Text>
               </Group>
-              <Droppable droppableId={status}>
+              <Droppable droppableId={status} isDropDisabled={SYSTEM_ONLY_STATUSES.has(status)}>
                 {(provided) => (
                   <Stack gap="xs" ref={provided.innerRef} {...provided.droppableProps} mih={80}>
                     {columns.get(status)?.map((activity, index) => (
@@ -129,60 +140,22 @@ export function KanbanPage() {
                             {...dragProvided.draggableProps}
                           >
                             <Group align="flex-start" gap="xs" wrap="nowrap">
-                              <Popover
-                                opened={previewActivityId === activity.id}
-                                onClose={() => setPreviewActivityId(null)}
-                                position="right"
-                                withArrow
-                                shadow="md"
-                                width={300}
-                                withinPortal
+                              <div
+                                onClick={() => setSelectedActivity(activity)}
+                                style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}
                               >
-                                <Popover.Target>
-                                  <div
-                                    onMouseEnter={() => setPreviewActivityId(activity.id)}
-                                    onMouseLeave={() =>
-                                      setPreviewActivityId((current) => (current === activity.id ? null : current))
-                                    }
-                                    onClick={() =>
-                                      setPreviewActivityId((current) => (current === activity.id ? null : activity.id))
-                                    }
-                                    style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}
-                                  >
-                                    <Text size="sm" fw={600}>
-                                      {activity.title}
-                                    </Text>
-                                    <Text size="xs" c="dimmed">
-                                      {activity.responsibleId
-                                        ? (userNameById.get(activity.responsibleId) ?? '—')
-                                        : 'Sem responsável'}
-                                    </Text>
-                                    <Text size="xs" c="dimmed">
-                                      {formatDate(activity.deadline)}
-                                    </Text>
-                                  </div>
-                                </Popover.Target>
-                                <Popover.Dropdown
-                                  onMouseEnter={() => setPreviewActivityId(activity.id)}
-                                  onMouseLeave={() =>
-                                    setPreviewActivityId((current) => (current === activity.id ? null : current))
-                                  }
-                                >
-                                  <ActivityDetailsContent
-                                    activity={activity}
-                                    responsibleName={
-                                      activity.responsibleId != null
-                                        ? userNameById.get(activity.responsibleId) ?? '—'
-                                        : 'Sem responsável'
-                                    }
-                                    coResponsibleName={
-                                      activity.coResponsibleId != null
-                                        ? userNameById.get(activity.coResponsibleId) ?? null
-                                        : null
-                                    }
-                                  />
-                                </Popover.Dropdown>
-                              </Popover>
+                                <Text size="sm" fw={600}>
+                                  {activity.title}
+                                </Text>
+                                <Text size="xs" c="dimmed">
+                                  {activity.responsibleId
+                                    ? (userNameById.get(activity.responsibleId) ?? '—')
+                                    : 'Sem responsável'}
+                                </Text>
+                                <Text size="xs" c="dimmed">
+                                  {formatDate(activity.deadline)}
+                                </Text>
+                              </div>
                               {canInteract(activity) && (
                                 <div
                                   {...dragProvided.dragHandleProps}
@@ -209,6 +182,13 @@ export function KanbanPage() {
           ))}
         </Group>
       </DragDropContext>
+
+      <ActivityDetailsDrawer
+        activity={selectedActivity}
+        responsibleName={selectedResponsibleName}
+        coResponsibleName={selectedCoResponsibleName}
+        onClose={() => setSelectedActivity(null)}
+      />
     </>
   );
 }
