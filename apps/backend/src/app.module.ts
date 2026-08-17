@@ -9,6 +9,7 @@ import { ActivitiesModule } from './activities/activities.module';
 import { ActivityTemplatesModule } from './activity-templates/activity-templates.module';
 import { AuthModule } from './auth/auth.module';
 import { ClosureModule } from './closure/closure.module';
+import { validateEnv } from './config/env.validation';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { DatabaseModule } from './database/database.module';
 import { NotificationsModule } from './notifications/notifications.module';
@@ -17,7 +18,7 @@ import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({ isGlobal: true, validate: validateEnv }),
     DatabaseModule,
     ScheduleModule.forRoot(),
     EventEmitterModule.forRoot(),
