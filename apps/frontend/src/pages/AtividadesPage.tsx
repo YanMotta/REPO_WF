@@ -1,9 +1,10 @@
 import { Badge, Group, Loader, Select, Table, Text, TextInput, Title, UnstyledButton } from '@mantine/core';
-import { ActivityDto, ActivityStatus } from '@workflow-brasal/shared';
+import { ActivityDto, ActivityStatus, Role } from '@workflow-brasal/shared';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import { listActivities } from '../api/activities';
 import { listUsers } from '../api/users';
+import { useAuth } from '../auth/AuthContext';
 import { CurrentMonthBadge } from '../components/CurrentMonthBadge';
 import { STATUS_COLOR, STATUS_LABEL } from '../constants/status';
 import { usePeriod } from '../period/PeriodContext';
@@ -16,8 +17,14 @@ const ALL_RESPONSIBLE = 'all';
 const NO_RESPONSIBLE = 'none';
 
 export function AtividadesPage() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === Role.ADMIN;
   const [selected, setSelected] = useState<ActivityDto | null>(null);
-  const [responsibleFilter, setResponsibleFilter] = useState<string>(ALL_RESPONSIBLE);
+  // Members/managers land on their own activities first ("minhas atividades") — admins, whose job
+  // is overseeing everyone, still default to seeing the whole team.
+  const [responsibleFilter, setResponsibleFilter] = useState<string>(() =>
+    isAdmin || !user ? ALL_RESPONSIBLE : String(user.id),
+  );
   const [numberFilter, setNumberFilter] = useState('');
 
   const { month, year, isLoading: monthLoading } = usePeriod();
@@ -72,7 +79,8 @@ export function AtividadesPage() {
       if (
         responsibleFilter !== ALL_RESPONSIBLE &&
         responsibleFilter !== NO_RESPONSIBLE &&
-        activity.responsibleId !== Number(responsibleFilter)
+        activity.responsibleId !== Number(responsibleFilter) &&
+        activity.coResponsibleId !== Number(responsibleFilter)
       ) {
         return false;
       }
@@ -90,7 +98,8 @@ export function AtividadesPage() {
         <CurrentMonthBadge month={month} year={year} />
       </Group>
       <Text c="dimmed" mb="md">
-        {sortedActivities.length} atividade{sortedActivities.length === 1 ? '' : 's'} neste mês
+        {filteredActivities.length} atividade{filteredActivities.length === 1 ? '' : 's'}
+        {filteredActivities.length !== sortedActivities.length ? ` de ${sortedActivities.length}` : ''} neste mês
       </Text>
 
       <Group mb="md">
