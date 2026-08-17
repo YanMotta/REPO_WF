@@ -1,11 +1,15 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Post } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Post, UseGuards } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
+import { Role } from '@workflow-brasal/shared';
 import { AuthenticatedUser, CurrentUser } from '../common/decorators/current-user.decorator';
 import { Public } from '../common/decorators/public.decorator';
+import { Roles } from '../common/decorators/roles.decorator';
+import { RolesGuard } from '../common/guards/roles.guard';
 import { AuthService } from './auth.service';
 import { ChangeEmailDto } from './dto/change-email.dto';
 import { ConfirmEmailChangeDto } from './dto/confirm-email-change.dto';
+import { CreateUserDto } from './dto/create-user.dto';
 import { EntraCallbackDto } from './dto/entra-callback.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { LoginDto } from './dto/login.dto';
@@ -33,6 +37,16 @@ export class AuthController {
   @Post('login')
   login(@Body() dto: LoginDto) {
     return this.authService.login(dto);
+  }
+
+  /** Admin-only: creates an account directly instead of requiring self-registration — the
+   * new person gets a "set your password" e-mail rather than the admin choosing one for them. */
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @Post('create-user')
+  createUser(@Body() dto: CreateUserDto) {
+    return this.authService.createUserByAdmin(dto);
   }
 
   @Public()

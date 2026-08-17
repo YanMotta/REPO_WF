@@ -82,6 +82,26 @@ export class UsersService {
     return this.usersRepository.save(user);
   }
 
+  /**
+   * Admin-created account (audit finding #4 — previously the only way for an account to exist was
+   * self-registration). Already active and verified — an admin vouching for the account is
+   * stronger proof than the person clicking their own e-mail link. `passwordHash` is a random
+   * value never handed to anyone; AuthService.createUserByAdmin immediately follows up with a
+   * password-reset-token e-mail so the new person sets their own password before ever logging in.
+   */
+  async createByAdmin(data: { name: string; email: string; role: Role }): Promise<User> {
+    const passwordHash = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), SALT_ROUNDS);
+    const user = this.usersRepository.create({
+      name: data.name,
+      email: data.email,
+      passwordHash,
+      role: data.role,
+      isActive: true,
+      isVerified: true,
+    });
+    return this.usersRepository.save(user);
+  }
+
   async markVerified(id: number): Promise<User> {
     const user = await this.findById(id);
     user.isVerified = true;

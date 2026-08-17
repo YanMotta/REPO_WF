@@ -1,12 +1,13 @@
-import { ActionIcon, Badge, Group, Loader, Table, Title, Tooltip } from '@mantine/core';
+import { ActionIcon, Badge, Button, Group, Loader, Table, Title, Tooltip } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { IconEdit, IconTrash, IconUserCheck } from '@tabler/icons-react';
+import { IconEdit, IconPlus, IconTrash, IconUserCheck } from '@tabler/icons-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Role, UserDto } from '@workflow-brasal/shared';
 import { useState } from 'react';
 import { ApiError } from '../api/client';
-import { UpdateUserInput, listUsers, updateUser } from '../api/users';
+import { CreateUserInput, UpdateUserInput, createUser, listUsers, updateUser } from '../api/users';
 import { useAuth } from '../auth/AuthContext';
+import { CreateUserModal } from './users/CreateUserModal';
 import { UserFormModal } from './users/UserFormModal';
 
 const ROLE_LABEL: Record<Role, string> = {
@@ -20,6 +21,7 @@ export function UsersPage() {
   const { user: currentUser } = useAuth();
   const [editing, setEditing] = useState<UserDto | null>(null);
   const [formModalOpen, setFormModalOpen] = useState(false);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
 
   const usersQuery = useQuery({ queryKey: ['users'], queryFn: listUsers });
 
@@ -40,6 +42,16 @@ export function UsersPage() {
       notifications.show({ color: 'green', message: 'Usuário atualizado com sucesso' });
     },
     onError: handleMutationError('Erro ao atualizar usuário'),
+  });
+
+  const createMutation = useMutation({
+    mutationFn: (input: CreateUserInput) => createUser(input),
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      setCreateModalOpen(false);
+      notifications.show({ color: 'green', title: 'Usuário criado', message: result.message });
+    },
+    onError: handleMutationError('Erro ao criar usuário'),
   });
 
   function openEditUser(user: UserDto) {
@@ -67,6 +79,9 @@ export function UsersPage() {
     <>
       <Group justify="space-between" mb="md">
         <Title order={2}>Usuários</Title>
+        <Button leftSection={<IconPlus size={16} />} onClick={() => setCreateModalOpen(true)}>
+          Novo usuário
+        </Button>
       </Group>
 
       {usersQuery.isLoading ? (
@@ -130,6 +145,12 @@ export function UsersPage() {
         onClose={() => setFormModalOpen(false)}
         onSubmit={handleFormSubmit}
         user={editing}
+      />
+      <CreateUserModal
+        opened={createModalOpen}
+        onClose={() => setCreateModalOpen(false)}
+        onSubmit={(input) => createMutation.mutate(input)}
+        isSaving={createMutation.isPending}
       />
     </>
   );

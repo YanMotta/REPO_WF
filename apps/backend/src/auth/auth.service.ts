@@ -2,12 +2,13 @@ import { BadRequestException, ConflictException, Injectable, Logger, Unauthorize
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { ConfidentialClientApplication } from '@azure/msal-node';
-import { UserDto } from '@workflow-brasal/shared';
+import { Role, UserDto } from '@workflow-brasal/shared';
 import * as bcrypt from 'bcryptjs';
 import * as crypto from 'crypto';
 import { NotificationsService } from '../notifications/notifications.service';
 import { User } from '../users/entities/user.entity';
 import { UsersService } from '../users/users.service';
+import { CreateUserDto } from './dto/create-user.dto';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 
@@ -87,6 +88,34 @@ export class AuthService {
     await this.sendVerificationEmail(user, verificationToken);
 
     return { message: 'Cadastro realizado! Verifique seu e-mail para ativar sua conta.' };
+  }
+
+  /**
+   * Admin-created account (audit finding #4) — the only path to an account before this was
+   * self-registration, which meant a manager couldn't actually onboard someone themselves.
+   * Already active and verified (see UsersService.createByAdmin); immediately e-mails a
+   * password-reset-token link so the new person sets their own password rather than the admin
+   * ever knowing or choosing it.
+   */
+  async createUserByAdmin(dto: CreateUserDto): Promise<{ message: string }> {
+    const existing = await this.usersService.findByEmail(dto.email);
+    if (existing) throw new ConflictException('E-mail já cadastrado');
+
+    const user = await this.usersService.createByAdmin({
+      name: sanitizeName(dto.name),
+      email: dto.email,
+      role: dto.role ?? Role.MEMBER,
+    });
+
+    const token = generatePasswordResetToken();
+    const updated = await this.usersService.setPasswordResetToken(
+      user.id,
+      token,
+      this.buildPasswordResetTokenExpiry(),
+    );
+    await this.sendWelcomeSetPasswordEmail(updated, token);
+
+    return { message: `Conta criada. Um e-mail foi enviado para ${dto.email} com instruções para definir a senha.` };
   }
 
   async login(dto: LoginDto): Promise<{ accessToken: string; user: UserDto }> {
@@ -299,6 +328,23 @@ export class AuthService {
       );
     } catch (err) {
       this.logger.error(`Failed to send password reset e-mail to user ${user.id}: ${err}`);
+    }
+  }
+
+  private async sendWelcomeSetPasswordEmail(user: User, token: string): Promise<void> {
+    const frontendUrl = this.configService.get<string>('FRONTEND_URL', 'http://localhost:5173');
+    const minutes = this.configService.get<number>('PASSWORD_RESET_TTL_MINUTES', 30);
+    const link = `${frontendUrl}/reset-password?token=${token}`;
+
+    try {
+      await this.notificationsService.sendRaw(
+        user.id,
+        user.email,
+        'Sua conta no Workflow Brasal foi criada',
+        `Olá, ${user.name}!\n\nUma conta foi criada para você no Workflow Brasal. Clique no link abaixo para definir sua senha de acesso (válido por ${minutes} minutos):\n\n${link}\n\nApós definir a senha, você já pode fazer login normalmente com seu e-mail.`,
+      );
+    } catch (err) {
+      this.logger.error(`Failed to send welcome e-mail to user ${user.id}: ${err}`);
     }
   }
 
