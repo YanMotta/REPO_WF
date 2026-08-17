@@ -6,12 +6,12 @@ import { listActivities } from '../api/activities';
 import { listUsers } from '../api/users';
 import { useAuth } from '../auth/AuthContext';
 import { CurrentMonthBadge } from '../components/CurrentMonthBadge';
-import { STATUS_COLOR, STATUS_LABEL } from '../constants/status';
 import { usePeriod } from '../period/PeriodContext';
 import { formatBusinessDayRule, formatDate, formatTime } from '../utils/format';
 import { ActivityDetailsDrawer } from './atividades/ActivityDetailsDrawer';
 import { PredecessorCell } from './atividades/PredecessorCell';
 import { ResponsibleCell } from './atividades/ResponsibleCell';
+import { StatusCell } from './atividades/StatusCell';
 
 const ALL_RESPONSIBLE = 'all';
 const NO_RESPONSIBLE = 'none';
@@ -185,7 +185,12 @@ export function AtividadesPage() {
                     : '—'}
                 </Table.Td>
                 <Table.Td>
-                  <Badge color={STATUS_COLOR[activity.status]}>{STATUS_LABEL[activity.status]}</Badge>
+                  <StatusCell
+                    activityId={activity.id}
+                    status={activity.status}
+                    responsibleId={activity.responsibleId}
+                    coResponsibleId={activity.coResponsibleId}
+                  />
                 </Table.Td>
               </Table.Tr>
             ))}
