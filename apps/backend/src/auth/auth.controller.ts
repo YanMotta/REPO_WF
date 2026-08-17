@@ -1,4 +1,4 @@
-import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Post } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { AuthenticatedUser, CurrentUser } from '../common/decorators/current-user.decorator';
@@ -6,6 +6,7 @@ import { Public } from '../common/decorators/public.decorator';
 import { AuthService } from './auth.service';
 import { ChangeEmailDto } from './dto/change-email.dto';
 import { ConfirmEmailChangeDto } from './dto/confirm-email-change.dto';
+import { EntraCallbackDto } from './dto/entra-callback.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
@@ -32,6 +33,19 @@ export class AuthController {
   @Post('login')
   login(@Body() dto: LoginDto) {
     return this.authService.login(dto);
+  }
+
+  @Public()
+  @Get('entra/login-info')
+  getEntraLoginInfo() {
+    return this.authService.getEntraLoginInfo();
+  }
+
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @Post('entra/callback')
+  entraCallback(@Body() dto: EntraCallbackDto) {
+    return this.authService.loginWithEntra(dto.code);
   }
 
   @Public()

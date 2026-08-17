@@ -2,6 +2,7 @@ import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/commo
 import { InjectRepository } from '@nestjs/typeorm';
 import { Role } from '@workflow-brasal/shared';
 import * as bcrypt from 'bcryptjs';
+import * as crypto from 'crypto';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -58,6 +59,25 @@ export class UsersService {
       role: Role.MEMBER,
       isActive: true,
       isVerified: false,
+    });
+    return this.usersRepository.save(user);
+  }
+
+  /**
+   * Auto-provisions a MEMBER account the first time someone signs in via Microsoft Entra ID.
+   * `isVerified: true` immediately — corporate SSO is already stronger proof of identity than our
+   * own e-mail-link verification. `passwordHash` is a random value never handed to the user, so
+   * local e-mail/password login stays impossible for this account (it only ever authenticates via
+   * Entra) without needing a nullable-password schema change.
+   */
+  async createFromEntra(data: { name: string; email: string }): Promise<User> {
+    const passwordHash = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), SALT_ROUNDS);
+    const user = this.usersRepository.create({
+      ...data,
+      passwordHash,
+      role: Role.MEMBER,
+      isActive: true,
+      isVerified: true,
     });
     return this.usersRepository.save(user);
   }

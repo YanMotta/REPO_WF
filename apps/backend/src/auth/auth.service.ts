@@ -1,6 +1,7 @@
 import { BadRequestException, ConflictException, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
+import { ConfidentialClientApplication } from '@azure/msal-node';
 import { UserDto } from '@workflow-brasal/shared';
 import * as bcrypt from 'bcryptjs';
 import * as crypto from 'crypto';
@@ -9,6 +10,11 @@ import { User } from '../users/entities/user.entity';
 import { UsersService } from '../users/users.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+
+/** Sign-in only — no Mail.Send/Graph scopes here. That's a separate integration (see roadmap
+ * Fase 4) with its own consent requirements; keeping this scope minimal is least-privilege and
+ * means IT has less to grant just to unblock login. */
+const ENTRA_LOGIN_SCOPES = ['openid', 'profile', 'email'];
 
 const SALT_ROUNDS = 10;
 
@@ -35,13 +41,32 @@ function generatePasswordResetToken(): string {
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
+  private readonly msalClient: ConfidentialClientApplication | null;
+  private readonly entraRedirectUri: string;
 
   constructor(
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
     private readonly notificationsService: NotificationsService,
     private readonly configService: ConfigService,
-  ) {}
+  ) {
+    const tenantId = this.configService.get<string>('ENTRA_TENANT_ID');
+    const clientId = this.configService.get<string>('ENTRA_CLIENT_ID');
+    const clientSecret = this.configService.get<string>('ENTRA_CLIENT_SECRET');
+    this.entraRedirectUri = this.configService.get<string>(
+      'ENTRA_REDIRECT_URI',
+      'http://localhost:5173/auth/entra/callback',
+    );
+
+    // null until IT provisions the App Registration and these three env vars are filled in —
+    // every Entra method below checks this and fails gracefully rather than crashing the app.
+    this.msalClient =
+      tenantId && clientId && clientSecret
+        ? new ConfidentialClientApplication({
+            auth: { clientId, clientSecret, authority: `https://login.microsoftonline.com/${tenantId}` },
+          })
+        : null;
+  }
 
   async register(dto: RegisterDto): Promise<{ message: string }> {
     const existing = await this.usersService.findByEmail(dto.email);
@@ -75,6 +100,60 @@ export class AuthService {
     // account-verification state to someone probing e-mails without a valid password.
     if (!user.isVerified) {
       throw new UnauthorizedException('E-mail ainda não verificado. Verifique sua caixa de entrada.');
+    }
+
+    return this.buildAuthResponse(user);
+  }
+
+  /** Drives the "Entrar com Microsoft" button: while `ENTRA_*` env vars are unset, `configured` is
+   * false and the frontend hides the button instead of offering a login path that would just
+   * 401 on click. Once set, returns the ready-to-redirect Microsoft authorize URL so the frontend
+   * only needs `window.location.href = authorizeUrl` — no client-side URL building. */
+  async getEntraLoginInfo(): Promise<{ configured: boolean; authorizeUrl?: string }> {
+    if (!this.msalClient) return { configured: false };
+
+    const authorizeUrl = await this.msalClient.getAuthCodeUrl({
+      scopes: ENTRA_LOGIN_SCOPES,
+      redirectUri: this.entraRedirectUri,
+    });
+    return { configured: true, authorizeUrl };
+  }
+
+  /**
+   * Exchanges the authorization code Microsoft redirected back with for tokens, then finds or
+   * auto-provisions (see UsersService.createFromEntra) the local User by e-mail (MSAL's
+   * `account.username` is the work/school account's UPN, which for the overwhelming majority of
+   * tenants is the same as its primary e-mail address). Never touches `passwordHash` for an
+   * existing account — an Entra sign-in and a local e-mail/password login can coexist on the same
+   * row without interfering with each other.
+   */
+  async loginWithEntra(code: string): Promise<{ accessToken: string; user: UserDto }> {
+    if (!this.msalClient) {
+      throw new BadRequestException('Login via Microsoft ainda não foi configurado.');
+    }
+
+    let result;
+    try {
+      result = await this.msalClient.acquireTokenByCode({
+        code,
+        scopes: ENTRA_LOGIN_SCOPES,
+        redirectUri: this.entraRedirectUri,
+      });
+    } catch (err) {
+      this.logger.error(`Entra ID token exchange failed: ${err}`);
+      throw new UnauthorizedException('Não foi possível concluir o login com a Microsoft.');
+    }
+
+    const email = result?.account?.username;
+    if (!email) {
+      throw new UnauthorizedException('A Microsoft não retornou um e-mail válido para esta conta.');
+    }
+
+    let user = await this.usersService.findByEmail(email);
+    if (!user) {
+      user = await this.usersService.createFromEntra({ name: result.account?.name ?? email, email });
+    } else if (!user.isActive) {
+      throw new UnauthorizedException('Esta conta está desativada.');
     }
 
     return this.buildAuthResponse(user);

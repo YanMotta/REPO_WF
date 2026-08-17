@@ -1,12 +1,13 @@
-import { Alert, Anchor, Button, Center, Paper, PasswordInput, Stack, Text, TextInput } from '@mantine/core';
-import { FormEvent, useState } from 'react';
+import { Alert, Anchor, Button, Center, Divider, Paper, PasswordInput, Stack, Text, TextInput } from '@mantine/core';
+import { IconBrandWindows } from '@tabler/icons-react';
+import { FormEvent, useEffect, useState } from 'react';
 import { Link, Location, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { BrasalLogo } from '../components/BrasalLogo';
 import { ApiError } from '../api/client';
 
 export function LoginPage() {
-  const { login, resendVerification, isAuthenticated } = useAuth();
+  const { login, resendVerification, getEntraLoginInfo, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const location = useLocation() as Location & { state?: { from?: Location } };
   const [email, setEmail] = useState('');
@@ -15,6 +16,15 @@ export function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const [resendSent, setResendSent] = useState(false);
+  const [entraAuthorizeUrl, setEntraAuthorizeUrl] = useState<string | null>(null);
+
+  // Hidden until ENTRA_TENANT_ID/CLIENT_ID/CLIENT_SECRET are configured on the backend (IT hasn't
+  // provisioned the App Registration yet) — no point offering a login path that would just fail.
+  useEffect(() => {
+    getEntraLoginInfo()
+      .then((info) => setEntraAuthorizeUrl(info.configured ? (info.authorizeUrl ?? null) : null))
+      .catch(() => setEntraAuthorizeUrl(null));
+  }, [getEntraLoginInfo]);
 
   if (isAuthenticated) {
     return <Navigate to={location.state?.from?.pathname ?? '/fechamento'} replace />;
@@ -92,6 +102,21 @@ export function LoginPage() {
             <Button type="submit" loading={loading} fullWidth mt="sm">
               Entrar
             </Button>
+            {entraAuthorizeUrl && (
+              <>
+                <Divider label="ou" labelPosition="center" />
+                <Button
+                  variant="default"
+                  fullWidth
+                  leftSection={<IconBrandWindows size={18} />}
+                  onClick={() => {
+                    window.location.href = entraAuthorizeUrl;
+                  }}
+                >
+                  Entrar com Microsoft
+                </Button>
+              </>
+            )}
             <Text size="sm" ta="center">
               Não tem uma conta? <Anchor component={Link} to="/register">Criar conta</Anchor>
             </Text>

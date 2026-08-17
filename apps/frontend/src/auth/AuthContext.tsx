@@ -17,10 +17,17 @@ interface StoredAuth {
   user: UserDto;
 }
 
+interface EntraLoginInfo {
+  configured: boolean;
+  authorizeUrl?: string;
+}
+
 interface AuthContextValue {
   user: UserDto | null;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
+  getEntraLoginInfo: () => Promise<EntraLoginInfo>;
+  loginWithEntra: (code: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<{ message: string }>;
   verifyEmail: (token: string) => Promise<void>;
   resendVerification: (email: string) => Promise<{ message: string }>;
@@ -58,6 +65,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(async (email: string, password: string) => {
     const result = await api.post<StoredAuth>('/auth/login', { email, password });
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(result));
+    setStored(result);
+  }, []);
+
+  const getEntraLoginInfo = useCallback(async () => {
+    return api.get<EntraLoginInfo>('/auth/entra/login-info');
+  }, []);
+
+  const loginWithEntra = useCallback(async (code: string) => {
+    const result = await api.post<StoredAuth>('/auth/entra/callback', { code });
     localStorage.setItem(STORAGE_KEY, JSON.stringify(result));
     setStored(result);
   }, []);
@@ -101,6 +118,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     user: stored?.user ?? null,
     isAuthenticated: !!stored?.accessToken,
     login,
+    getEntraLoginInfo,
+    loginWithEntra,
     register,
     verifyEmail,
     resendVerification,
