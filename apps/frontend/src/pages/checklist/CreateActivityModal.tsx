@@ -35,7 +35,9 @@ export function CreateActivityModal({
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [responsibleId, setResponsibleId] = useState<number | undefined>();
+  const [coResponsibleId, setCoResponsibleId] = useState<number | undefined>();
   const [priority, setPriority] = useState<ActivityPriority>(ActivityPriority.MEDIUM);
+  const [startDate, setStartDate] = useState<Date | null>(null);
   const [businessDayOffset, setBusinessDayOffset] = useState(1);
   const [manualDeadline, setManualDeadline] = useState<Date | null>(null);
   const [dueTime, setDueTime] = useState('');
@@ -47,7 +49,9 @@ export function CreateActivityModal({
     setTitle('');
     setDescription('');
     setResponsibleId(undefined);
+    setCoResponsibleId(undefined);
     setPriority(ActivityPriority.MEDIUM);
+    setStartDate(null);
     setBusinessDayOffset(1);
     setManualDeadline(null);
     setDueTime('');
@@ -68,7 +72,9 @@ export function CreateActivityModal({
       title,
       description: description || undefined,
       responsibleId,
+      coResponsibleId,
       priority,
+      startDate: startDate ? startDate.toISOString().slice(0, 10) : undefined,
       dueTime: dueTime || undefined,
       estimatedHours,
       notes: notes || undefined,
@@ -98,6 +104,15 @@ export function CreateActivityModal({
           onChange={(v) => setResponsibleId(v ? Number(v) : undefined)}
           clearable
         />
+        <Select
+          label="Co-responsável"
+          description="Assume a atividade se o responsável estiver de férias ou sobrecarregado"
+          data={users.filter((u) => u.id !== responsibleId).map((u) => ({ value: String(u.id), label: u.name }))}
+          value={coResponsibleId ? String(coResponsibleId) : null}
+          onChange={(v) => setCoResponsibleId(v ? Number(v) : undefined)}
+          clearable
+        />
+        <DateInput label="Data de início" value={startDate} onChange={setStartDate} clearable />
         <Select
           label="Prioridade"
           data={PRIORITY_OPTIONS}
