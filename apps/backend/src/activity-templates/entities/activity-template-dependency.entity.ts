@@ -28,7 +28,13 @@ export class ActivityTemplateDependency {
   @Column()
   dependsOnTemplateId: number;
 
-  @ManyToOne(() => ActivityTemplate, { onDelete: 'CASCADE' })
+  /**
+   * `NO ACTION`, not `CASCADE` like `template` above — SQL Server rejects two cascading foreign
+   * keys from the same child table to the same parent table ("may cause cycles or multiple
+   * cascade paths", error 1785). Harmless in practice: there's no `DELETE /activity-templates/:id`
+   * endpoint, so this path is never actually exercised.
+   */
+  @ManyToOne(() => ActivityTemplate, { onDelete: 'NO ACTION' })
   @JoinColumn({ name: 'dependsOnTemplateId' })
   dependsOnTemplate: ActivityTemplate;
 }

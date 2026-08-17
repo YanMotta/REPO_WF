@@ -40,7 +40,14 @@ export class Activity {
   @Column({ type: 'int', nullable: true })
   coResponsibleId: number | null;
 
-  @ManyToOne(() => User, { nullable: true, onDelete: 'SET NULL' })
+  /**
+   * `NO ACTION`, not `SET NULL` like `responsible` above — SQL Server rejects two cascading
+   * (SET NULL/CASCADE) foreign keys from the same child table to the same parent table
+   * ("may cause cycles or multiple cascade paths", error 1785). Harmless in practice: there's no
+   * `DELETE /users/:id` endpoint (deactivation is soft via `isActive`, see soft-delete-default
+   * convention), so this path is never actually exercised.
+   */
+  @ManyToOne(() => User, { nullable: true, onDelete: 'NO ACTION' })
   @JoinColumn({ name: 'coResponsibleId' })
   coResponsible: User | null;
 
