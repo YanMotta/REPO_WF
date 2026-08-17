@@ -16,6 +16,7 @@ import { ApiError } from '../../api/client';
 import { useAuth } from '../../auth/AuthContext';
 import { STATUS_COLOR, STATUS_LABEL } from '../../constants/status';
 import { formatBusinessDayRule, formatDate, formatTime } from '../../utils/format';
+import { ActivityHistoryList } from './ActivityHistoryList';
 import { EditActivityModal } from './EditActivityModal';
 import { UpdateProgressModal } from './UpdateProgressModal';
 
@@ -115,6 +116,8 @@ export function ActivityDetailsContent({
       </Group>
 
       {activity.notes && <Field label="Observações">{activity.notes}</Field>}
+
+      <ActivityHistoryList activityId={activity.id} />
     </Stack>
   );
 }

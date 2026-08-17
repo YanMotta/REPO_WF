@@ -323,6 +323,11 @@ export class ActivitiesService {
     return saved;
   }
 
+  /** Chronological (oldest first) — reads as a timeline of the activity's lifecycle. */
+  getHistory(activityId: number): Promise<ActivityHistory[]> {
+    return this.historyRepository.find({ where: { activityId }, order: { occurredAt: 'ASC' } });
+  }
+
   async getDependencies(activityId: number): Promise<ActivityDependency[]> {
     return this.dependenciesRepository.find({ where: { activityId } });
   }

@@ -1,4 +1,4 @@
-import { ActivityDependencyDto, ActivityDto, ActivityPriority } from '@workflow-brasal/shared';
+import { ActivityDependencyDto, ActivityDto, ActivityHistoryDto, ActivityPriority } from '@workflow-brasal/shared';
 import { api } from './client';
 
 export interface ActivityFilter {
@@ -82,6 +82,10 @@ export function updateActivityProgress(
 
 export function getActivityDependencies(id: number): Promise<ActivityDependencyDto[]> {
   return api.get<ActivityDependencyDto[]>(`/activities/${id}/dependencies`);
+}
+
+export function getActivityHistory(id: number): Promise<ActivityHistoryDto[]> {
+  return api.get<ActivityHistoryDto[]>(`/activities/${id}/history`);
 }
 
 /** All dependency edges across every activity — backs the Gantt view's connector rendering. */

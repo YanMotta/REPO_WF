@@ -114,6 +114,14 @@ export class ActivitiesController {
     return this.activitiesService.getBlockedBy(id);
   }
 
+  /** Audit finding #2 — the data was always recorded (recordHistory, called from every mutating
+   * method) but nothing ever exposed it. Open to any authenticated user, same as the other
+   * read-only sub-resources on this controller. */
+  @Get(':id/history')
+  getHistory(@Param('id', ParseIntPipe) id: number) {
+    return this.activitiesService.getHistory(id);
+  }
+
   /** All dependencies (regardless of completion) — backs the "Predecessora" column in the UI. */
   @Get(':id/dependencies')
   getDependencies(@Param('id', ParseIntPipe) id: number) {
