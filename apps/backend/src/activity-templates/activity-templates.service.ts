@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { wouldCreateCycle } from '../common/graph/cycle-detection';
 import { CreateActivityTemplateDto } from './dto/create-activity-template.dto';
 import { UpdateActivityTemplateDto } from './dto/update-activity-template.dto';
 import { ActivityTemplateDependency } from './entities/activity-template-dependency.entity';
@@ -85,6 +86,9 @@ export class ActivityTemplatesService {
     return this.dependenciesRepository.find({ where: { templateId } });
   }
 
+  /** Same reachability check as ActivitiesService.addDependency, mirrored here because a cyclic
+   * template is worse than a cyclic one-off activity — it regenerates the same stuck Backlog
+   * loop every month the closure is generated, not just once. */
   async addDependency(
     templateId: number,
     dependsOnTemplateId: number,
@@ -94,6 +98,16 @@ export class ActivityTemplatesService {
     }
     await this.findById(templateId);
     await this.findById(dependsOnTemplateId);
+
+    const isCycle = await wouldCreateCycle(dependsOnTemplateId, templateId, async (id) =>
+      (await this.getDependencies(id)).map((d) => d.dependsOnTemplateId),
+    );
+    if (isCycle) {
+      throw new BadRequestException(
+        `Adding this dependency would create a cycle: template ${dependsOnTemplateId} already depends ` +
+          `(directly or transitively) on template ${templateId}`,
+      );
+    }
 
     const existing = await this.dependenciesRepository.findOne({
       where: { templateId, dependsOnTemplateId },

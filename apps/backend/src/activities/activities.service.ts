@@ -15,6 +15,7 @@ import {
   DependencyReleasedPayload,
   DomainEvent,
 } from '../common/events/domain-events';
+import { wouldCreateCycle } from '../common/graph/cycle-detection';
 import { ActivityFilterDto } from './dto/activity-filter.dto';
 import { ChangeCoResponsibleDto } from './dto/change-co-responsible.dto';
 import { ChangeResponsibleDto } from './dto/change-responsible.dto';
@@ -314,13 +315,27 @@ export class ActivitiesService {
     return predecessors.filter((p) => p.completionDate == null);
   }
 
-  /** Adding a dependency to a TO_DO activity rebases it to BACKLOG — same rule as at creation time. */
+  /** Adding a dependency to a TO_DO activity rebases it to BACKLOG — same rule as at creation time.
+   * Rejects an activityId -> dependsOnActivityId edge when dependsOnActivityId already (directly
+   * or transitively) depends on activityId — adding it would close a cycle that leaves every
+   * activity in the loop permanently stuck in Backlog, since none could ever resolve all its
+   * predecessors. */
   async addDependency(activityId: number, dependsOnActivityId: number): Promise<ActivityDependency> {
     if (activityId === dependsOnActivityId) {
       throw new BadRequestException('An activity cannot depend on itself');
     }
     const activity = await this.findById(activityId);
     await this.findById(dependsOnActivityId);
+
+    const isCycle = await wouldCreateCycle(dependsOnActivityId, activityId, async (id) =>
+      (await this.getDependencies(id)).map((d) => d.dependsOnActivityId),
+    );
+    if (isCycle) {
+      throw new BadRequestException(
+        `Adding this dependency would create a cycle: activity ${dependsOnActivityId} already depends ` +
+          `(directly or transitively) on activity ${activityId}`,
+      );
+    }
 
     const existing = await this.dependenciesRepository.findOne({
       where: { activityId, dependsOnActivityId },
