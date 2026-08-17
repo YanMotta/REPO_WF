@@ -23,6 +23,7 @@ import { ChangeResponsibleDto } from './dto/change-responsible.dto';
 import { ChangeStatusDto } from './dto/change-status.dto';
 import { CreateActivityDto } from './dto/create-activity.dto';
 import { UpdateActivityDto } from './dto/update-activity.dto';
+import { UpdateActivityProgressDto } from './dto/update-activity-progress.dto';
 
 @ApiTags('activities')
 @ApiBearerAuth()
@@ -59,6 +60,19 @@ export class ActivitiesController {
   @Patch(':id')
   update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateActivityDto) {
     return this.activitiesService.update(id, dto);
+  }
+
+  /** MEMBER/MANAGER may only report progress/hours/notes on activities they're
+   * responsible/co-responsible for — title/priority/deadline stay behind the admin-only PATCH
+   * /:id above. */
+  @UseGuards(ActivityOwnershipGuard)
+  @Patch(':id/progress')
+  updateProgress(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateActivityProgressDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.activitiesService.updateProgress(id, dto, user.id);
   }
 
   /** MEMBER/MANAGER may only change status on activities they're responsible/co-responsible for. */

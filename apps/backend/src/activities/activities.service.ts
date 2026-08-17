@@ -22,6 +22,7 @@ import { ChangeResponsibleDto } from './dto/change-responsible.dto';
 import { ChangeStatusDto } from './dto/change-status.dto';
 import { CreateActivityDto } from './dto/create-activity.dto';
 import { UpdateActivityDto } from './dto/update-activity.dto';
+import { UpdateActivityProgressDto } from './dto/update-activity-progress.dto';
 import { assertManualStatusTransition } from './activities.rules';
 import { ActivityDependency } from './entities/activity-dependency.entity';
 import { ActivityHistory } from './entities/activity-history.entity';
@@ -238,6 +239,35 @@ export class ActivitiesService {
       const payload: ActivityCompletedPayload = { activityId: saved.id };
       this.eventEmitter.emit(DomainEvent.ActivityCompleted, payload);
     }
+
+    return saved;
+  }
+
+  /** The subset of fields the responsible/co-responsible themselves may update — reporting actual
+   * progress, hours worked and notes, without touching title/priority/deadline (admin-only, see
+   * `update` above). Records one history entry per call, capturing the progress percent
+   * before/after even if this particular call only changed hours or notes. */
+  async updateProgress(
+    id: number,
+    dto: UpdateActivityProgressDto,
+    actorId: number | null = null,
+  ): Promise<Activity> {
+    const activity = await this.findById(id);
+    const oldProgress = activity.progressPercent;
+
+    if (dto.progressPercent !== undefined) activity.progressPercent = dto.progressPercent;
+    if (dto.actualHours !== undefined) activity.actualHours = dto.actualHours;
+    if (dto.notes !== undefined) activity.notes = dto.notes;
+
+    const saved = await this.activitiesRepository.save(activity);
+
+    await this.recordHistory(
+      saved.id,
+      ActivityHistoryEventType.PROGRESS_UPDATED,
+      String(oldProgress),
+      String(saved.progressPercent),
+      actorId,
+    );
 
     return saved;
   }

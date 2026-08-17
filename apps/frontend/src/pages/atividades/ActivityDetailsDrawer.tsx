@@ -1,15 +1,23 @@
-import { Badge, Button, Drawer, Group, Stack, Text } from '@mantine/core';
+import { Badge, Button, Drawer, Group, Progress, Stack, Text } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { IconPencil } from '@tabler/icons-react';
 import { ActivityDto, ActivityStatus, Role } from '@workflow-brasal/shared';
 import { ReactNode, useEffect, useState } from 'react';
-import { getActivity, getActivityDependencies, updateActivity, UpdateActivityInput } from '../../api/activities';
+import {
+  getActivity,
+  getActivityDependencies,
+  updateActivity,
+  UpdateActivityInput,
+  updateActivityProgress,
+  UpdateActivityProgressInput,
+} from '../../api/activities';
 import { ApiError } from '../../api/client';
 import { useAuth } from '../../auth/AuthContext';
 import { STATUS_COLOR, STATUS_LABEL } from '../../constants/status';
 import { formatBusinessDayRule, formatDate, formatTime } from '../../utils/format';
 import { EditActivityModal } from './EditActivityModal';
+import { UpdateProgressModal } from './UpdateProgressModal';
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -91,8 +99,18 @@ export function ActivityDetailsContent({
       {(activity.status === ActivityStatus.DONE || activity.status === ActivityStatus.LATE) &&
         activity.completionDate && <Field label="Concluído em">{formatTime(activity.completionDate)}</Field>}
 
+      <Field label="Progresso">
+        <Group gap="xs" align="center" wrap="nowrap">
+          <Progress value={activity.progressPercent} size="lg" style={{ flex: 1 }} />
+          <Text size="sm" fw={600}>
+            {activity.progressPercent}%
+          </Text>
+        </Group>
+      </Field>
+
       <Group grow>
         <Field label="Horas previstas">{activity.estimatedHours ?? '—'}</Field>
+        <Field label="Horas realizadas">{activity.actualHours ?? '—'}</Field>
         <Field label="Horas excedentes">{activity.exceededHours.toFixed(1)}</Field>
       </Group>
 
@@ -114,8 +132,11 @@ export function ActivityDetailsDrawer({
 }) {
   const { user } = useAuth();
   const isAdmin = user?.role === Role.ADMIN;
+  const isOwner =
+    !!user && (user.id === activity?.responsibleId || user.id === activity?.coResponsibleId);
   const queryClient = useQueryClient();
   const [editOpen, setEditOpen] = useState(false);
+  const [progressOpen, setProgressOpen] = useState(false);
   // Shows the just-saved version immediately, without waiting for the parent's own
   // ['activities', ...] query (a different key per page) to refetch in the background.
   const [displayActivity, setDisplayActivity] = useState<ActivityDto | null>(activity);
@@ -142,20 +163,45 @@ export function ActivityDetailsDrawer({
     },
   });
 
+  const progressMutation = useMutation({
+    mutationFn: (dto: UpdateActivityProgressInput) => updateActivityProgress(displayActivity!.id, dto),
+    onSuccess: (updated) => {
+      setDisplayActivity(updated);
+      setProgressOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['activities'] });
+      queryClient.invalidateQueries({ queryKey: ['activity', updated.id] });
+      notifications.show({ color: 'green', title: 'Andamento atualizado', message: updated.title });
+    },
+    onError: (err: unknown) => {
+      notifications.show({
+        color: 'red',
+        title: 'Não foi possível salvar o andamento',
+        message: err instanceof ApiError ? err.message : 'Erro inesperado',
+      });
+    },
+  });
+
   return (
     <Drawer opened={!!activity} onClose={onClose} title="Detalhes da atividade" position="right" size="md">
       {displayActivity && (
         <Stack gap="md">
-          {isAdmin && (
+          {(isAdmin || isOwner) && (
             <Group justify="flex-end">
-              <Button
-                size="xs"
-                variant="light"
-                leftSection={<IconPencil size={14} />}
-                onClick={() => setEditOpen(true)}
-              >
-                Editar
-              </Button>
+              {isOwner && (
+                <Button size="xs" variant="light" onClick={() => setProgressOpen(true)}>
+                  Atualizar andamento
+                </Button>
+              )}
+              {isAdmin && (
+                <Button
+                  size="xs"
+                  variant="light"
+                  leftSection={<IconPencil size={14} />}
+                  onClick={() => setEditOpen(true)}
+                >
+                  Editar
+                </Button>
+              )}
             </Group>
           )}
           <ActivityDetailsContent
@@ -172,6 +218,15 @@ export function ActivityDetailsDrawer({
           activity={displayActivity}
           onSubmit={(dto) => updateMutation.mutate(dto)}
           isSaving={updateMutation.isPending}
+        />
+      )}
+      {displayActivity && (
+        <UpdateProgressModal
+          opened={progressOpen}
+          onClose={() => setProgressOpen(false)}
+          activity={displayActivity}
+          onSubmit={(dto) => progressMutation.mutate(dto)}
+          isSaving={progressMutation.isPending}
         />
       )}
     </Drawer>

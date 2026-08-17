@@ -65,6 +65,21 @@ export function updateActivity(id: number, dto: UpdateActivityInput): Promise<Ac
   return api.patch<ActivityDto>(`/activities/${id}`, dto);
 }
 
+export interface UpdateActivityProgressInput {
+  progressPercent?: number;
+  actualHours?: number;
+  notes?: string;
+}
+
+/** For the activity's own responsible/co-responsible (not just admin) — see UpdateActivityInput
+ * for the full, admin-only edit. */
+export function updateActivityProgress(
+  id: number,
+  dto: UpdateActivityProgressInput,
+): Promise<ActivityDto> {
+  return api.patch<ActivityDto>(`/activities/${id}/progress`, dto);
+}
+
 export function getActivityDependencies(id: number): Promise<ActivityDependencyDto[]> {
   return api.get<ActivityDependencyDto[]>(`/activities/${id}/dependencies`);
 }
