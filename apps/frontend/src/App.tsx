@@ -62,14 +62,7 @@ export function App() {
             </RequireAdmin>
           }
         />
-        <Route
-          path="/gantt"
-          element={
-            <RequireAdmin>
-              <GanttPage />
-            </RequireAdmin>
-          }
-        />
+        <Route path="/gantt" element={<GanttPage />} />
         <Route
           path="/modelos-fechamento"
           element={

@@ -24,7 +24,7 @@ const NAV_ITEMS = [
   { label: 'Dashboard', path: '/dashboard', icon: IconLayoutDashboard, adminOnly: true },
   { label: 'Quadro', path: '/quadro', icon: IconLayoutKanban, adminOnly: false },
   { label: 'Cronogramas', path: '/projetos', icon: IconFolders, adminOnly: true },
-  { label: 'Gantt', path: '/gantt', icon: IconTimeline, adminOnly: true },
+  { label: 'Gantt', path: '/gantt', icon: IconTimeline, adminOnly: false },
   { label: 'Usuários', path: '/usuarios', icon: IconUsers, adminOnly: true },
 ];
 
