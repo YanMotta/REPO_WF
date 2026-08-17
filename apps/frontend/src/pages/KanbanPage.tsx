@@ -1,12 +1,12 @@
 import { DragDropContext, Draggable, DropResult, Droppable } from '@hello-pangea/dnd';
 import { Badge, Card, Group, Paper, Stack, Text, Title, Tooltip } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { IconGripVertical } from '@tabler/icons-react';
+import { IconGripVertical, IconLock } from '@tabler/icons-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ActivityDto, ActivityStatus, Role, SYSTEM_ONLY_STATUSES } from '@workflow-brasal/shared';
 import { useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { changeActivityStatus, listActivities } from '../api/activities';
+import { changeActivityStatus, listActivities, listAllDependencies } from '../api/activities';
 import { ApiError } from '../api/client';
 import { listUsers } from '../api/users';
 import { useAuth } from '../auth/AuthContext';
@@ -44,6 +44,35 @@ export function KanbanPage() {
     (usersQuery.data ?? []).forEach((user) => map.set(user.id, user.name));
     return map;
   }, [usersQuery.data]);
+
+  const depsQuery = useQuery({ queryKey: ['activity-dependencies-all'], queryFn: listAllDependencies });
+
+  const activityById = useMemo(() => {
+    const map = new Map<number, ActivityDto>();
+    (activitiesQuery.data ?? []).forEach((a) => map.set(a.id, a));
+    return map;
+  }, [activitiesQuery.data]);
+
+  const predecessorsByActivityId = useMemo(() => {
+    const map = new Map<number, number[]>();
+    (depsQuery.data ?? []).forEach((edge) => {
+      const list = map.get(edge.activityId) ?? [];
+      list.push(edge.dependsOnActivityId);
+      map.set(edge.activityId, list);
+    });
+    return map;
+  }, [depsQuery.data]);
+
+  /** Same predicate as ActivitiesService.getBlockedBy/GanttPage — a predecessor is resolved once
+   * it has a completionDate, not specifically status === DONE. */
+  const blockedActivityIds = useMemo(() => {
+    const blocked = new Set<number>();
+    predecessorsByActivityId.forEach((predecessorIds, activityId) => {
+      const isBlocked = predecessorIds.some((id) => !activityById.get(id)?.completionDate);
+      if (isBlocked) blocked.add(activityId);
+    });
+    return blocked;
+  }, [predecessorsByActivityId, activityById]);
 
   const statusMutation = useMutation({
     mutationFn: ({ activityId, status }: { activityId: number; status: ActivityStatus }) =>
@@ -144,9 +173,16 @@ export function KanbanPage() {
                                 onClick={() => setSelectedActivity(activity)}
                                 style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}
                               >
-                                <Text size="sm" fw={600}>
-                                  {activity.title}
-                                </Text>
+                                <Group gap={4} wrap="nowrap">
+                                  {blockedActivityIds.has(activity.id) && (
+                                    <Tooltip label="Bloqueada — aguardando predecessora(s) concluir">
+                                      <IconLock size={12} style={{ flexShrink: 0, color: 'var(--mantine-color-dimmed)' }} />
+                                    </Tooltip>
+                                  )}
+                                  <Text size="sm" fw={600} truncate>
+                                    {activity.title}
+                                  </Text>
+                                </Group>
                                 <Text size="xs" c="dimmed">
                                   {activity.responsibleId
                                     ? (userNameById.get(activity.responsibleId) ?? '—')
