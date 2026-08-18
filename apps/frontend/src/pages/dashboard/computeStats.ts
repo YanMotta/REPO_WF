@@ -25,6 +25,8 @@ export interface DashboardStats {
   averageLeadTimeDays: number | null;
   completionRate: number;
   onTimeRate: number | null;
+  totalEstimatedHours: number;
+  totalActualHours: number;
   statusCounts: Record<ActivityStatus, number>;
   byResponsible: ResponsibleStats[];
   bottlenecks: ActivityBottleneckStats[];
@@ -65,6 +67,11 @@ export function computeDashboardStats(activities: ActivityDto[], users: UserDto[
   const completionRate = total > 0 ? (doneActivities.length / total) * 100 : 0;
   const onTimeCount = doneActivities.filter((a) => (a.exceededHours || 0) === 0).length;
   const onTimeRate = doneActivities.length > 0 ? (onTimeCount / doneActivities.length) * 100 : null;
+
+  // Only sums activities that actually have the field set, so unreported hours don't dilute
+  // the comparison with silent zeros.
+  const totalEstimatedHours = activities.reduce((sum, a) => sum + (a.estimatedHours ?? 0), 0);
+  const totalActualHours = activities.reduce((sum, a) => sum + (a.actualHours ?? 0), 0);
 
   const byResponsibleMap = new Map<number, ResponsibleStats>();
   activities.forEach((a) => {
@@ -109,6 +116,8 @@ export function computeDashboardStats(activities: ActivityDto[], users: UserDto[
     averageLeadTimeDays,
     completionRate,
     onTimeRate,
+    totalEstimatedHours,
+    totalActualHours,
     statusCounts,
     byResponsible,
     bottlenecks,

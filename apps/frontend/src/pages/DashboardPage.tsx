@@ -99,6 +99,8 @@ export function DashboardPage() {
               label="Lead time médio (dias)"
               value={stats.averageLeadTimeDays != null ? stats.averageLeadTimeDays.toFixed(1) : '—'}
             />
+            <StatCard label="Horas previstas" value={`${stats.totalEstimatedHours.toFixed(1)}h`} />
+            <StatCard label="Horas realizadas" value={`${stats.totalActualHours.toFixed(1)}h`} />
           </SimpleGrid>
 
           <Group>
