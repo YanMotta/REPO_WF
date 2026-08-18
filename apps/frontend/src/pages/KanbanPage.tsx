@@ -1,5 +1,5 @@
 import { DragDropContext, Draggable, DropResult, Droppable } from '@hello-pangea/dnd';
-import { Badge, Card, Group, Paper, Stack, Text, Title, Tooltip } from '@mantine/core';
+import { Badge, Card, Group, Paper, Select, Stack, Text, Title, Tooltip } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { IconGripVertical, IconLock } from '@tabler/icons-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -16,12 +16,18 @@ import { KANBAN_COLUMNS, STATUS_COLOR, STATUS_LABEL } from '../constants/status'
 import { usePeriod } from '../period/PeriodContext';
 import { formatDate } from '../utils/format';
 
+const ALL_RESPONSIBLE = 'all';
+
 export function KanbanPage() {
   const { id: projectIdParam } = useParams();
   const projectId = projectIdParam ? Number(projectIdParam) : undefined;
   const { user } = useAuth();
   const isAdmin = user?.role === Role.ADMIN;
   const [selectedActivity, setSelectedActivity] = useState<ActivityDto | null>(null);
+  // Same "minhas atividades" default as the Atividades list — admins still see the whole team.
+  const [responsibleFilter, setResponsibleFilter] = useState<string>(() =>
+    isAdmin || !user ? ALL_RESPONSIBLE : String(user.id),
+  );
 
   function canInteract(activity: ActivityDto): boolean {
     return isAdmin || activity.responsibleId === user?.id || activity.coResponsibleId === user?.id;
@@ -44,6 +50,14 @@ export function KanbanPage() {
     (usersQuery.data ?? []).forEach((user) => map.set(user.id, user.name));
     return map;
   }, [usersQuery.data]);
+
+  const responsibleOptions = useMemo(
+    () => [
+      { value: ALL_RESPONSIBLE, label: 'Todos' },
+      ...(usersQuery.data ?? []).map((u) => ({ value: String(u.id), label: u.name })),
+    ],
+    [usersQuery.data],
+  );
 
   const depsQuery = useQuery({ queryKey: ['activity-dependencies-all'], queryFn: listAllDependencies });
 
@@ -88,14 +102,24 @@ export function KanbanPage() {
     },
   });
 
+  // Filtered view for the board's columns only — dependency/blocking computation above stays on
+  // the full month so a predecessor owned by someone else is still resolved correctly.
+  const filteredActivities = useMemo(() => {
+    if (responsibleFilter === ALL_RESPONSIBLE) return activitiesQuery.data ?? [];
+    const responsibleId = Number(responsibleFilter);
+    return (activitiesQuery.data ?? []).filter(
+      (activity) => activity.responsibleId === responsibleId || activity.coResponsibleId === responsibleId,
+    );
+  }, [activitiesQuery.data, responsibleFilter]);
+
   const columns = useMemo(() => {
     const grouped = new Map<ActivityStatus, ActivityDto[]>();
     KANBAN_COLUMNS.forEach((status) => grouped.set(status, []));
-    (activitiesQuery.data ?? []).forEach((activity) => {
+    filteredActivities.forEach((activity) => {
       grouped.get(activity.status)?.push(activity);
     });
     return grouped;
-  }, [activitiesQuery.data]);
+  }, [filteredActivities]);
 
   function handleDragEnd(result: DropResult) {
     if (!result.destination) return;
@@ -125,6 +149,16 @@ export function KanbanPage() {
         <Title order={2}>Quadro Kanban</Title>
         <CurrentMonthBadge month={month} year={year} />
       </Group>
+
+      <Select
+        label="Responsável"
+        data={responsibleOptions}
+        value={responsibleFilter}
+        onChange={(value) => setResponsibleFilter(value ?? ALL_RESPONSIBLE)}
+        allowDeselect={false}
+        mb="md"
+        w={{ base: '100%', sm: 220 }}
+      />
 
       <DragDropContext onDragEnd={handleDragEnd}>
         <Group align="flex-start" wrap="nowrap" style={{ overflowX: 'auto' }}>
